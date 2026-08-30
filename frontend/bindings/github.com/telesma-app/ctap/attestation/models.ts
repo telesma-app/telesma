@@ -23,3 +23,18 @@ export enum AttestationStatementFormatIdentifier {
     AttestationStatementFormatIdentifierApple = "apple",
     AttestationStatementFormatIdentifierNone = "none",
 };
+
+/**
+ * Type describes the attestation evidence established by statement verification.
+ */
+export enum Type {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    TypeNone = "none",
+    TypeSelf = "self",
+    TypeBasic = "basic",
+    TypeUnsupported = "unsupported",
+};

@@ -6,7 +6,8 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
- * A UUID is a 128 bit (16 byte) Universal Unique IDentifier as defined in RFC
- * 4122.
+ * A UUID is a Universally Unique Identifier as specified in RFC 9562.
+ * 
+ * UUIDs are comparable, such as with the == operator.
  */
 export type UUID = string;

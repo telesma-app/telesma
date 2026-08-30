@@ -7,9 +7,6 @@ import { Create as $Create } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as uuid$0 from "../../../google/uuid/models.js";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore: Unused imports
 import * as attestation$0 from "../attestation/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -17,6 +14,9 @@ import * as credential$0 from "../credential/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as extension$0 from "../extension/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as uuid$0 from "../../../../uuid/models.js";
 
 /**
  * AuthenticatorGetInfoResponse is used in Metadata Statement specification as well, so json notation added.

@@ -10,7 +10,10 @@ import {
   PublicKeyCredentialType,
   PublicKeyCredentialUserEntity,
 } from "../../../../bindings/github.com/telesma-app/ctap/credential";
-import { AttestationStatementFormatIdentifier } from "../../../../bindings/github.com/telesma-app/ctap/attestation";
+import {
+  AttestationStatementFormatIdentifier,
+  Type as AttestationType,
+} from "../../../../bindings/github.com/telesma-app/ctap/attestation";
 import {
   AuthenticationExtensionsPRFValues,
   CredentialPropertiesOutput,
@@ -26,6 +29,7 @@ import {
   GetAssertionPreview,
   GetAssertionPreviewSignOutput,
   GetAssertionResult as GetAssertionResultDTO,
+  LargeBlobGetOutput,
   MakeCredentialClientExtensionResults,
   MakeCredentialExtensionResults,
   MakeCredentialInput,
@@ -33,7 +37,14 @@ import {
   MakeCredentialPreview,
   MakeCredentialPreviewSignOutput,
   MakeCredentialResult as MakeCredentialResultDTO,
+  PreviewSignAttestationInspection,
+  PreviewSignCOSEKeyInspection,
   PreviewSignGeneratedKey,
+  PreviewSignGeneratedKeyInspection,
+  PreviewSignKeyMaterialKind,
+  PreviewSignSignatureEncoding,
+  PreviewSignSignatureInspection,
+  PreviewSignSigningPolicy,
 } from "../../../../bindings/github.com/telesma-app/kit/model/webauthn";
 
 import GetAssertionResult from "$lib/components/lab/GetAssertionResult.svelte";
@@ -215,7 +226,8 @@ describe("WebAuthn Lab results", () => {
     expect(document.body).not.toHaveTextContent(secret);
   });
 
-  it("labels credential blob output with the extension identifier", () => {
+  it("keeps credential blob bytes in Technical details", async () => {
+    const user = userEvent.setup();
     const result = new GetAssertionResultDTO({
       attachmentId: "token-1",
       rpID: "example.com",
@@ -240,7 +252,60 @@ describe("WebAuthn Lab results", () => {
     renderGetResult(result);
 
     expect(screen.getByText("credBlob")).toBeInTheDocument();
+    expect(screen.getByText("2 bytes")).toBeInTheDocument();
     expect(screen.queryByText("getCredBlob")).not.toBeInTheDocument();
+    expect(screen.queryByText("0102")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Technical details" }));
+    await user.click(screen.getByRole("tab", { name: "credBlob · value" }));
+
+    const credentialBlobRegion = screen.getByRole("region", { name: "credBlob · value" });
+
+    expect(credentialBlobRegion).toHaveTextContent("0102");
+    expect(screen.getByText("credBlob bytes · 2 bytes")).toBeInTheDocument();
+  });
+
+  it("keeps largeBlob bytes in Technical details", async () => {
+    const user = userEvent.setup();
+    const result = new GetAssertionResultDTO({
+      attachmentId: "token-1",
+      rpID: "example.com",
+      assertions: [
+        new Assertion({
+          index: 0,
+          credential: new PublicKeyCredentialDescriptor({
+            type: PublicKeyCredentialType.PublicKeyCredentialTypePublicKey,
+            id: "AA==",
+          }),
+          authenticatorDataHex: "cafe",
+          signatureHex: "aa",
+          extensionResults: new GetAssertionExtensionResults({
+            client: new GetAssertionClientExtensionResults({
+              largeBlob: new LargeBlobGetOutput({ blobHex: "aabbcc", written: false }),
+            }),
+          }),
+        }),
+      ],
+    });
+
+    renderGetResult(result);
+
+    const blobRow = screen
+      .getByText("largeBlob · blob", { selector: "dt" })
+      .closest("div") as HTMLElement;
+    expect(within(blobRow).getByText("3 bytes")).toBeInTheDocument();
+    expect(screen.queryByText("aabbcc")).not.toBeInTheDocument();
+
+    const writtenRow = screen.getByText("largeBlob · written").closest("div") as HTMLElement;
+    expect(within(writtenRow).getByText("False")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Technical details" }));
+    await user.click(screen.getByRole("tab", { name: "largeBlob · blob" }));
+
+    const largeBlobRegion = screen.getByRole("region", { name: "largeBlob · blob" });
+
+    expect(largeBlobRegion).toHaveTextContent("aabbcc");
+    expect(screen.getByText("largeBlob bytes · 3 bytes")).toBeInTheDocument();
   });
 
   it("renders and copies the generated previewSign key material", async () => {
@@ -261,6 +326,36 @@ describe("WebAuthn Lab results", () => {
               publicKeyCOSEHex: "a103",
               algorithm: Algorithm.AlgorithmESP256SplitARKGPlaceholder,
               attestationObjectCBORHex: "a204",
+              inspection: new PreviewSignGeneratedKeyInspection({
+                key: new PreviewSignCOSEKeyInspection({
+                  kind: PreviewSignKeyMaterialKind.PreviewSignKeyMaterialARKGPublicSeed,
+                  keyType: -65537,
+                  algorithm: Algorithm.AlgorithmARKGP256Placeholder,
+                  derivedAlgorithm: Algorithm.AlgorithmESP256,
+                  blindingKey: new PreviewSignCOSEKeyInspection({
+                    kind: PreviewSignKeyMaterialKind.PreviewSignKeyMaterialPublicKey,
+                    keyType: 2,
+                    curve: 1,
+                    algorithm: Algorithm.AlgorithmES256,
+                  }),
+                  kemKey: new PreviewSignCOSEKeyInspection({
+                    kind: PreviewSignKeyMaterialKind.PreviewSignKeyMaterialPublicKey,
+                    keyType: 2,
+                    curve: 1,
+                    algorithm: Algorithm.AlgorithmECDHESHKDF256,
+                  }),
+                }),
+                attestation: new PreviewSignAttestationInspection({
+                  format:
+                    AttestationStatementFormatIdentifier.AttestationStatementFormatIdentifierPacked,
+                  type: AttestationType.TypeBasic,
+                  certificateCount: 2,
+                  aaguid: "00112233-4455-6677-8899-aabbccddeeff",
+                  signingPolicy: PreviewSignSigningPolicy.PreviewSignSigningPolicyUserPresence,
+                  keyHandleMatchesAttestation: true,
+                  publicKeyMatchesAttestation: true,
+                }),
+              }),
             }),
           }),
         }),
@@ -269,23 +364,88 @@ describe("WebAuthn Lab results", () => {
 
     renderMakeResult(result);
 
-    expect(screen.getByText("previewSign")).toBeInTheDocument();
-    expect(screen.getByText("ESP256-split-ARKG")).toBeInTheDocument();
+    expect(screen.getByText("previewSign signing key")).toBeInTheDocument();
+    expect(screen.getByText("ESP256-split-ARKG (-65539)")).toBeInTheDocument();
+    expect(screen.getByText("32-byte SHA-256 digest")).toBeInTheDocument();
+    expect(screen.getByText("ECDSA P-256 · SHA-256")).toBeInTheDocument();
+    expect(screen.getByText("Touch required")).toBeInTheDocument();
+    expect(screen.getByText("packed · basic · 2 certificates")).toBeInTheDocument();
+    expect(screen.queryByText("keyHandle")).not.toBeInTheDocument();
+    expect(screen.queryByText("0102")).not.toBeInTheDocument();
+    expect(screen.queryByText("a103")).not.toBeInTheDocument();
     expect(
-      screen.getByText(String(Algorithm.AlgorithmESP256SplitARKGPlaceholder)),
-    ).toBeInTheDocument();
-    expect(screen.getByText("keyHandle")).toBeInTheDocument();
-    expect(screen.getByText("publicKey")).toBeInTheDocument();
-    expect(screen.getByText("attestationObject")).toBeInTheDocument();
-    expect(screen.getByText("0102")).toBeInTheDocument();
-    expect(screen.getByText("a103")).toBeInTheDocument();
-    expect(screen.getByText("a204")).toBeInTheDocument();
+      screen.queryByText("ARKG public seed (-65537) · ARKG-P256 (-65700)"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("EC2 (2) · P-256 (1) · ES256 (-7)")).not.toBeInTheDocument();
+    expect(screen.queryByText("Matches")).not.toBeInTheDocument();
+    expect(screen.queryByText("attestationObject")).not.toBeInTheDocument();
 
+    await user.click(screen.getByRole("button", { name: "Technical details" }));
+    await user.click(screen.getByRole("tab", { name: "previewSign key handle" }));
+    expect(screen.getByRole("region", { name: "previewSign key handle" })).toHaveTextContent(
+      "0102",
+    );
     await user.click(screen.getByRole("button", { name: "Copy previewSign key handle" }));
     expect(clipboardSetText).toHaveBeenLastCalledWith("0102");
+
+    await user.click(screen.getByRole("tab", { name: "ARKG-P256 public seed" }));
+    expect(screen.getByRole("region", { name: "ARKG-P256 public seed" })).toHaveTextContent("a103");
   });
 
-  it("renders the previewSign assertion signature as a regular inspectable output", () => {
+  it("offers SPKI PEM only for exportable previewSign public keys", async () => {
+    const user = userEvent.setup();
+    const publicKeyPEM =
+      "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcD\n-----END PUBLIC KEY-----\n";
+    const result = new MakeCredentialResultDTO({
+      attachmentId: "token-1",
+      rpID: "example.com",
+      fmt: AttestationStatementFormatIdentifier.AttestationStatementFormatIdentifierNone,
+      credentialIDHex: "0011",
+      publicKeyCOSEHex: "aabb",
+      authenticatorDataHex: "ccdd",
+      attestationObjectCBORHex: "eeff",
+      extensionResults: new MakeCredentialExtensionResults({
+        client: new MakeCredentialClientExtensionResults({
+          previewSign: new MakeCredentialPreviewSignOutput({
+            generatedKey: new PreviewSignGeneratedKey({
+              keyHandleHex: "0102",
+              publicKeyCOSEHex: "a103",
+              algorithm: Algorithm.AlgorithmES256,
+              attestationObjectCBORHex: "a204",
+              inspection: new PreviewSignGeneratedKeyInspection({
+                key: new PreviewSignCOSEKeyInspection({
+                  kind: PreviewSignKeyMaterialKind.PreviewSignKeyMaterialPublicKey,
+                  keyType: 2,
+                  curve: 1,
+                  algorithm: Algorithm.AlgorithmES256,
+                  publicKeyPEM,
+                }),
+                attestation: new PreviewSignAttestationInspection({
+                  format:
+                    AttestationStatementFormatIdentifier.AttestationStatementFormatIdentifierNone,
+                  type: AttestationType.TypeNone,
+                  signingPolicy: PreviewSignSigningPolicy.PreviewSignSigningPolicyUnattended,
+                  keyHandleMatchesAttestation: true,
+                  publicKeyMatchesAttestation: true,
+                }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    });
+
+    renderMakeResult(result);
+    await user.click(screen.getByRole("button", { name: "Technical details" }));
+    await user.click(screen.getByRole("tab", { name: "previewSign public key (PEM)" }));
+
+    expect(screen.getByRole("region", { name: "previewSign public key (PEM)" })).toHaveTextContent(
+      "BEGIN PUBLIC KEY",
+    );
+  });
+
+  it("keeps the signature summary focused and exposes DER components in technical details", async () => {
+    const user = userEvent.setup();
     const result = new GetAssertionResultDTO({
       attachmentId: "token-1",
       rpID: "example.com",
@@ -300,7 +460,17 @@ describe("WebAuthn Lab results", () => {
           signatureHex: "aa",
           extensionResults: new GetAssertionExtensionResults({
             client: new GetAssertionClientExtensionResults({
-              previewSign: new GetAssertionPreviewSignOutput({ signatureHex: "deadbeef" }),
+              previewSign: new GetAssertionPreviewSignOutput({
+                signatureHex: "3044deadbeef",
+                inspection: new PreviewSignSignatureInspection({
+                  algorithm: Algorithm.AlgorithmESP256SplitARKGPlaceholder,
+                  verificationAlgorithm: Algorithm.AlgorithmESP256,
+                  encoding: PreviewSignSignatureEncoding.PreviewSignSignatureEncodingASN1DERECDSA,
+                  structureValid: true,
+                  rHex: "0102",
+                  sHex: "0304",
+                }),
+              }),
             }),
           }),
         }),
@@ -309,9 +479,23 @@ describe("WebAuthn Lab results", () => {
 
     renderGetResult(result);
 
-    expect(screen.getByText("previewSign · signature")).toBeInTheDocument();
-    expect(screen.getByText("deadbeef")).toBeInTheDocument();
+    expect(screen.getAllByText("previewSign signature")).toHaveLength(2);
+    expect(screen.getByText("ESP256-split-ARKG (-65539)")).toBeInTheDocument();
+    expect(screen.getByText("ASN.1 DER ECDSA signature")).toBeInTheDocument();
+    expect(screen.getByText("ECDSA P-256 · SHA-256")).toBeInTheDocument();
+    expect(screen.queryByText("3044deadbeef")).not.toBeInTheDocument();
+    expect(screen.queryByText("Valid")).not.toBeInTheDocument();
+    expect(screen.queryByText("0102")).not.toBeInTheDocument();
+    expect(screen.queryByText("0304")).not.toBeInTheDocument();
     expect(screen.queryByText("prf · results")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Technical details" }));
+    await user.click(screen.getByRole("tab", { name: "previewSign signature" }));
+    expect(screen.getByRole("region", { name: "previewSign signature" })).toHaveTextContent(
+      "3044deadbeef",
+    );
+    await user.click(screen.getByRole("tab", { name: "ECDSA component r" }));
+    expect(screen.getByRole("region", { name: "ECDSA component r" })).toHaveTextContent("0102");
   });
 
   it("shows exact client data and copies only the selected inline technical value", async () => {

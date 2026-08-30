@@ -4,11 +4,12 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"uuid"
+
 	"github.com/fxamacker/cbor/v2"
 	ctapattestation "github.com/telesma-app/ctap/attestation"
 	appwebauthn "github.com/telesma-app/kit/model/webauthn"
 	mdsmodel "github.com/telesma-app/mds/model"
-	"github.com/google/uuid"
 )
 
 func TestAssessMakeCredentialAttestationMarksNoneNotApplicable(t *testing.T) {

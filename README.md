@@ -19,7 +19,7 @@ Available operations depend on the capabilities and state of the connected authe
 
 ## Requirements
 
-- Go 1.26.3 or newer
+- Go 1.27.0 or newer
 - Wails 3 CLI compatible with the version pinned in `go.mod`
 - Node.js and pnpm
 - Native Wails build dependencies for your platform

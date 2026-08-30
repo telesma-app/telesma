@@ -6,12 +6,13 @@ import (
 	"errors"
 	"time"
 
+	"uuid"
+
 	ctapattestation "github.com/telesma-app/ctap/attestation"
 	ctapkit "github.com/telesma-app/kit"
 	appwebauthn "github.com/telesma-app/kit/model/webauthn"
 	"github.com/telesma-app/mds"
 	mdsmodel "github.com/telesma-app/mds/model"
-	"github.com/google/uuid"
 )
 
 type MakeCredentialAttestationAssessmentRequest struct {

@@ -7,9 +7,6 @@ import { Create as $Create } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as uuid$0 from "../../../../google/uuid/models.js";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore: Unused imports
 import * as attestation$0 from "../../../ctap/attestation/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -23,6 +20,9 @@ import * as protocol$0 from "../../../ctap/protocol/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as report$0 from "../report/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as uuid$0 from "../../../../../uuid/models.js";
 
 /**
  * Assessment is the deterministic, presentation-neutral interpretation of an

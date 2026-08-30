@@ -5,10 +5,11 @@ import (
 	"errors"
 	"strconv"
 
+	"uuid"
+
 	ctapkit "github.com/telesma-app/kit"
 	"github.com/telesma-app/kit/model/failure"
 	"github.com/telesma-app/mds"
-	"github.com/google/uuid"
 )
 
 func (s *Service) LookupMDS(ctx context.Context, req MDSLookupRequest) (MDSLookupEnvelope, error) {

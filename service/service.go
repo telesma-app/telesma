@@ -4,7 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/google/uuid"
+	"uuid"
+
 	ctapkit "github.com/telesma-app/kit"
 	"github.com/telesma-app/kit/model"
 	"github.com/telesma-app/kit/model/failure"
@@ -265,7 +266,7 @@ type interactionHandler struct {
 
 func (h interactionHandler) RequestInteraction(ctx context.Context, req model.InteractionRequest) (model.InteractionResponse, error) {
 	prompt := InteractionPrompt{
-		InteractionID: InteractionID(uuid.NewString()),
+		InteractionID: InteractionID(uuid.New().String()),
 		OperationID:   h.operationID,
 		SelectionID:   h.selectionID,
 		Request:       req,

@@ -7,10 +7,10 @@ import { Create as $Create } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as uuid$0 from "../../../google/uuid/models.js";
+import * as protocol$0 from "../../ctap/protocol/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as protocol$0 from "../../ctap/protocol/models.js";
+import * as uuid$0 from "../../../../uuid/models.js";
 
 /**
  * AttestationTrustAssessment contains policy-neutral MDS trust facts. Status

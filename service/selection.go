@@ -4,7 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/google/uuid"
+	"uuid"
+
 	ctapkit "github.com/telesma-app/kit"
 	"github.com/telesma-app/kit/model/failure"
 	"github.com/telesma-app/kit/model/report"
@@ -152,7 +153,7 @@ func (s *Service) reconcileSelection(runtime openedAuthenticator) {
 		return
 	}
 
-	selected := newSelection(SelectionID(uuid.NewString()), runtime)
+	selected := newSelection(SelectionID(uuid.New().String()), runtime)
 	s.mu.Lock()
 	if !s.closed {
 		s.selected = selected

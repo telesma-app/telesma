@@ -2,7 +2,7 @@
   export type LabTechnicalDataItem = {
     id: string;
     label: string;
-    syntax: "json" | "hex";
+    syntax: "json" | "hex" | "text";
     type: string;
     byteCount: number;
     source: string;
@@ -99,7 +99,7 @@
             {#if selectedItem.syntax === "json"}
               <JsonCode source={selectedItem.source} />
             {:else}
-              <pre class="lab-technical-hex">{selectedItem.source}</pre>
+              <pre class="lab-technical-source">{selectedItem.source}</pre>
             {/if}
           </ScrollArea>
         </Tabs.Content>
@@ -217,7 +217,7 @@
       min-width: 100%;
     }
 
-    .lab-technical-hex {
+    .lab-technical-source {
       width: 100%;
       min-width: 0;
       margin: 0;

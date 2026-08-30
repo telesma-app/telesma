@@ -3,7 +3,8 @@ package service
 import (
 	"context"
 
-	"github.com/google/uuid"
+	"uuid"
+
 	ctapkit "github.com/telesma-app/kit"
 	"github.com/telesma-app/kit/model/failure"
 	"github.com/telesma-app/kit/model/operation"
@@ -68,7 +69,7 @@ func runOperation[T any](
 	kind operation.Kind,
 	execute operationExecutor[T],
 ) (OperationEnvelopeMeta, *T) {
-	operationID := OperationID(uuid.NewString())
+	operationID := OperationID(uuid.New().String())
 	meta := OperationEnvelopeMeta{
 		OperationID: operationID,
 		Kind:        kind,

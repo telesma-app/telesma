@@ -5,6 +5,7 @@
     GetAssertionResult as GetAssertionResultDTO,
     GetAssertionVerification,
   } from "../../../../bindings/github.com/telesma-app/kit/model/webauthn";
+  import { PreviewSignSignatureEncoding } from "../../../../bindings/github.com/telesma-app/kit/model/webauthn";
 
   import { Badge } from "$lib/components/ui/badge";
   import * as Tabs from "$lib/components/ui/tabs";
@@ -21,6 +22,7 @@
   } from "$lib/components/lab/LabTechnicalDataViewer.svelte";
   import LabVerificationMaterialEditor from "$lib/components/lab/LabVerificationMaterialEditor.svelte";
   import LabVerificationRoute from "$lib/components/lab/LabVerificationRoute.svelte";
+  import PreviewSignSignatureResult from "$lib/components/lab/PreviewSignSignatureResult.svelte";
 
   type Props = {
     preview: GetAssertionPreview;
@@ -52,8 +54,12 @@
 
   let authenticatorExtensions = $derived(selectedAssertion?.extensionResults?.authenticator);
 
+  let hasStandardWebAuthnOutputs = $derived(
+    Boolean(clientExtensions?.prf || clientExtensions?.largeBlob),
+  );
+
   let hasWebAuthnOutputs = $derived(
-    Boolean(clientExtensions?.prf || clientExtensions?.largeBlob || clientExtensions?.previewSign),
+    Boolean(hasStandardWebAuthnOutputs || clientExtensions?.previewSign),
   );
 
   let hasCTAPOutputs = $derived(
@@ -104,9 +110,72 @@
         id: "preview-sign-signature",
         label: m.lab_preview_sign_signature(),
         syntax: "hex",
-        type: "signature",
+        type:
+          clientExtensions.previewSign.inspection?.encoding ===
+          PreviewSignSignatureEncoding.PreviewSignSignatureEncodingASN1DERECDSA
+            ? "ASN.1 DER ECDSA"
+            : "signature",
         byteCount: hexByteCount(clientExtensions.previewSign.signatureHex),
         source: clientExtensions.previewSign.signatureHex,
+      });
+
+      if (clientExtensions.previewSign.inspection?.rHex) {
+        details.push({
+          id: "preview-sign-signature-r",
+          label: m.lab_preview_sign_signature_component_r(),
+          syntax: "hex",
+          type: "ECDSA scalar",
+          byteCount: hexByteCount(clientExtensions.previewSign.inspection.rHex),
+          source: clientExtensions.previewSign.inspection.rHex,
+        });
+      }
+
+      if (clientExtensions.previewSign.inspection?.sHex) {
+        details.push({
+          id: "preview-sign-signature-s",
+          label: m.lab_preview_sign_signature_component_s(),
+          syntax: "hex",
+          type: "ECDSA scalar",
+          byteCount: hexByteCount(clientExtensions.previewSign.inspection.sHex),
+          source: clientExtensions.previewSign.inspection.sHex,
+        });
+      }
+
+      if (clientExtensions.previewSign.inspection) {
+        const inspectionJSON = sanitizedJson(clientExtensions.previewSign.inspection) ?? "null";
+        details.push({
+          id: "preview-sign-signature-inspection",
+          label: m.lab_preview_sign_signature_inspection(),
+          syntax: "json",
+          type: "JSON",
+          byteCount: utf8ByteCount(inspectionJSON),
+          source: inspectionJSON,
+        });
+      }
+    }
+
+    if (
+      clientExtensions?.largeBlob?.blobHex !== undefined &&
+      clientExtensions.largeBlob.blobHex !== null
+    ) {
+      details.push({
+        id: "large-blob",
+        label: "largeBlob · blob",
+        syntax: "hex",
+        type: "largeBlob bytes",
+        byteCount: hexByteCount(clientExtensions.largeBlob.blobHex),
+        source: clientExtensions.largeBlob.blobHex,
+      });
+    }
+
+    if (clientExtensions?.getCredBlob) {
+      details.push({
+        id: "credential-blob",
+        label: "credBlob · value",
+        syntax: "hex",
+        type: "credBlob bytes",
+        byteCount: hexByteCount(clientExtensions.getCredBlob.valueHex),
+        source: clientExtensions.getCredBlob.valueHex,
       });
     }
 
@@ -231,66 +300,62 @@
           >
             <h5 id="lab-get-webauthn-outputs-title">{m.lab_webauthn_extension_outputs()}</h5>
 
-            <dl class="lab-extension-result-list">
-              {#if clientExtensions?.prf}
-                {#if clientExtensions.prf.results}
-                  <div>
-                    <dt>prf · first</dt>
-                    <dd>
-                      {#key clientExtensions.prf.results.first}<LabSecretValue
-                          valueHex={base64ToHex(clientExtensions.prf.results.first)}
-                        />{/key}
-                    </dd>
-                  </div>
-
-                  {#if clientExtensions.prf.results.second !== undefined && clientExtensions.prf.results.second !== null}
+            {#if hasStandardWebAuthnOutputs}
+              <dl class="lab-extension-result-list">
+                {#if clientExtensions?.prf}
+                  {#if clientExtensions.prf.results}
                     <div>
-                      <dt>prf · second</dt>
+                      <dt>prf · first</dt>
                       <dd>
-                        {#key clientExtensions.prf.results.second}<LabSecretValue
-                            valueHex={base64ToHex(clientExtensions.prf.results.second)}
+                        {#key clientExtensions.prf.results.first}<LabSecretValue
+                            valueHex={base64ToHex(clientExtensions.prf.results.first)}
                           />{/key}
                       </dd>
                     </div>
+
+                    {#if clientExtensions.prf.results.second !== undefined && clientExtensions.prf.results.second !== null}
+                      <div>
+                        <dt>prf · second</dt>
+                        <dd>
+                          {#key clientExtensions.prf.results.second}<LabSecretValue
+                              valueHex={base64ToHex(clientExtensions.prf.results.second)}
+                            />{/key}
+                        </dd>
+                      </div>
+                    {/if}
+                  {:else}
+                    <div>
+                      <dt>prf · results</dt>
+                      <dd>{m.lab_not_reported()}</dd>
+                    </div>
                   {/if}
-                {:else}
-                  <div>
-                    <dt>prf · results</dt>
-                    <dd>{m.lab_not_reported()}</dd>
-                  </div>
-                {/if}
-              {/if}
-
-              {#if clientExtensions?.largeBlob}
-                {#if clientExtensions.largeBlob.blobHex !== undefined && clientExtensions.largeBlob.blobHex !== null}
-                  <div>
-                    <dt>largeBlob · blob</dt>
-                    <dd>
-                      <LabHexValue label="largeBlob" value={clientExtensions.largeBlob.blobHex} />
-                    </dd>
-                  </div>
                 {/if}
 
-                {#if clientExtensions.largeBlob.written !== undefined && clientExtensions.largeBlob.written !== null}
-                  <div>
-                    <dt>largeBlob · written</dt>
-                    <dd>{booleanLabel(clientExtensions.largeBlob.written)}</dd>
-                  </div>
-                {/if}
-              {/if}
+                {#if clientExtensions?.largeBlob}
+                  {#if clientExtensions.largeBlob.blobHex !== undefined && clientExtensions.largeBlob.blobHex !== null}
+                    <div>
+                      <dt>largeBlob · blob</dt>
+                      <dd>
+                        {m.lab_byte_count({
+                          count: hexByteCount(clientExtensions.largeBlob.blobHex),
+                        })}
+                      </dd>
+                    </div>
+                  {/if}
 
-              {#if clientExtensions?.previewSign}
-                <div class="lab-result-wide">
-                  <dt>previewSign · signature</dt>
-                  <dd>
-                    <LabHexValue
-                      label={m.lab_preview_sign_signature()}
-                      value={clientExtensions.previewSign.signatureHex}
-                    />
-                  </dd>
-                </div>
-              {/if}
-            </dl>
+                  {#if clientExtensions.largeBlob.written !== undefined && clientExtensions.largeBlob.written !== null}
+                    <div>
+                      <dt>largeBlob · written</dt>
+                      <dd>{booleanLabel(clientExtensions.largeBlob.written)}</dd>
+                    </div>
+                  {/if}
+                {/if}
+              </dl>
+            {/if}
+
+            {#if clientExtensions?.previewSign}
+              <PreviewSignSignatureResult output={clientExtensions.previewSign} />
+            {/if}
           </section>
         {/if}
 
@@ -303,7 +368,9 @@
                 <div>
                   <dt>credBlob</dt>
                   <dd>
-                    <LabHexValue label="credBlob" value={clientExtensions.getCredBlob.valueHex} />
+                    {m.lab_byte_count({
+                      count: hexByteCount(clientExtensions.getCredBlob.valueHex),
+                    })}
                   </dd>
                 </div>
               {/if}

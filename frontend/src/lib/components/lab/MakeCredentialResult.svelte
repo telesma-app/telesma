@@ -1,14 +1,13 @@
 <script lang="ts">
-  import { Algorithm } from "../../../../bindings/github.com/telesma-app/ctap/cose";
   import type {
     MakeCredentialPreview,
     MakeCredentialResult as MakeCredentialResultDTO,
     MakeCredentialVerification,
   } from "../../../../bindings/github.com/telesma-app/kit/model/webauthn";
+  import { PreviewSignKeyMaterialKind } from "../../../../bindings/github.com/telesma-app/kit/model/webauthn";
   import type { AttestationTrustAssessment } from "../../../../bindings/github.com/telesma-app/mds/model";
 
   import { Badge } from "$lib/components/ui/badge";
-  import * as Card from "$lib/components/ui/card";
   import type { LabVerificationState } from "$lib/features/lab/state";
   import { base64ToHex, base64ToUTF8 } from "$lib/lab-input";
   import { sanitizedJson } from "$lib/redaction";
@@ -21,6 +20,7 @@
     type LabTechnicalDataItem,
   } from "$lib/components/lab/LabTechnicalDataViewer.svelte";
   import LabVerificationRoute from "$lib/components/lab/LabVerificationRoute.svelte";
+  import PreviewSignGeneratedKeyResult from "$lib/components/lab/PreviewSignGeneratedKeyResult.svelte";
 
   type Props = {
     preview: MakeCredentialPreview;
@@ -107,12 +107,26 @@
     ];
 
     if (previewSignGeneratedKey) {
+      const generatedKeyJSON = sanitizedJson(previewSignGeneratedKey) ?? "null";
+
       details.push(
         {
-          id: "preview-sign-public-key",
-          label: m.lab_preview_sign_public_key(),
+          id: "preview-sign-key-handle",
+          label: m.lab_preview_sign_key_handle(),
           syntax: "hex",
-          type: "COSE",
+          type: "opaque bytes",
+          byteCount: hexByteCount(previewSignGeneratedKey.keyHandleHex),
+          source: previewSignGeneratedKey.keyHandleHex,
+        },
+        {
+          id: "preview-sign-public-key",
+          label:
+            previewSignGeneratedKey.inspection?.key.kind ===
+            PreviewSignKeyMaterialKind.PreviewSignKeyMaterialARKGPublicSeed
+              ? m.lab_preview_sign_arkg_public_seed()
+              : m.lab_preview_sign_public_key(),
+          syntax: "hex",
+          type: "COSE_Key",
           byteCount: hexByteCount(previewSignGeneratedKey.publicKeyCOSEHex),
           source: previewSignGeneratedKey.publicKeyCOSEHex,
         },
@@ -124,7 +138,48 @@
           byteCount: hexByteCount(previewSignGeneratedKey.attestationObjectCBORHex),
           source: previewSignGeneratedKey.attestationObjectCBORHex,
         },
+        {
+          id: "preview-sign-generated-key",
+          label: m.lab_preview_sign_generated_key_details(),
+          syntax: "json",
+          type: "JSON",
+          byteCount: utf8ByteCount(generatedKeyJSON),
+          source: generatedKeyJSON,
+        },
       );
+
+      if (previewSignGeneratedKey.inspection?.key.publicKeyPEM) {
+        details.push({
+          id: "preview-sign-public-key-pem",
+          label: m.lab_preview_sign_public_key_pem(),
+          syntax: "text",
+          type: "SPKI PEM",
+          byteCount: utf8ByteCount(previewSignGeneratedKey.inspection.key.publicKeyPEM),
+          source: previewSignGeneratedKey.inspection.key.publicKeyPEM,
+        });
+      }
+
+      if (previewSignGeneratedKey.inspection?.key.blindingKey?.publicKeyPEM) {
+        details.push({
+          id: "preview-sign-blinding-key-pem",
+          label: m.lab_preview_sign_blinding_key_pem(),
+          syntax: "text",
+          type: "SPKI PEM",
+          byteCount: utf8ByteCount(previewSignGeneratedKey.inspection.key.blindingKey.publicKeyPEM),
+          source: previewSignGeneratedKey.inspection.key.blindingKey.publicKeyPEM,
+        });
+      }
+
+      if (previewSignGeneratedKey.inspection?.key.kemKey?.publicKeyPEM) {
+        details.push({
+          id: "preview-sign-kem-key-pem",
+          label: m.lab_preview_sign_kem_key_pem(),
+          syntax: "text",
+          type: "SPKI PEM",
+          byteCount: utf8ByteCount(previewSignGeneratedKey.inspection.key.kemKey.publicKeyPEM),
+          source: previewSignGeneratedKey.inspection.key.kemKey.publicKeyPEM,
+        });
+      }
     }
 
     details.push({
@@ -145,12 +200,6 @@
 
   function nullableBooleanLabel(value: boolean | null | undefined) {
     return value === null || value === undefined ? m.lab_not_reported() : booleanLabel(value);
-  }
-
-  function previewSignAlgorithmLabel(algorithm: number) {
-    return algorithm === Algorithm.AlgorithmESP256SplitARKGPlaceholder
-      ? "ESP256-split-ARKG"
-      : "COSE algorithm";
   }
 
   function hexByteCount(value: string) {
@@ -275,55 +324,7 @@
           {/if}
 
           {#if previewSignGeneratedKey}
-            <Card.Root size="sm">
-              <Card.Header>
-                <Card.Title>previewSign</Card.Title>
-                <Card.Description>{m.lab_preview_sign_generated_key_description()}</Card.Description
-                >
-                <Card.Action>
-                  <Badge variant="outline">
-                    <span>{previewSignAlgorithmLabel(previewSignGeneratedKey.algorithm)}</span>
-                    <code class="lab-preview-sign-algorithm-id"
-                      >{previewSignGeneratedKey.algorithm}</code
-                    >
-                  </Badge>
-                </Card.Action>
-              </Card.Header>
-
-              <Card.Content>
-                <dl class="lab-preview-sign-fields">
-                  <div>
-                    <dt>keyHandle</dt>
-                    <dd>
-                      <LabHexValue
-                        label={m.lab_preview_sign_key_handle()}
-                        value={previewSignGeneratedKey.keyHandleHex}
-                      />
-                    </dd>
-                  </div>
-
-                  <div>
-                    <dt>publicKey</dt>
-                    <dd>
-                      <LabHexValue
-                        label={m.lab_preview_sign_public_key()}
-                        value={previewSignGeneratedKey.publicKeyCOSEHex}
-                      />
-                    </dd>
-                  </div>
-
-                  <div>
-                    <dt>attestationObject</dt>
-                    <dd>
-                      <LabHexValue
-                        label={m.lab_preview_sign_attestation_object()}
-                        value={previewSignGeneratedKey.attestationObjectCBORHex}
-                      />
-                    </dd>
-                  </div>
-                </dl>
-              </Card.Content>
-            </Card.Root>
+            <PreviewSignGeneratedKeyResult generatedKey={previewSignGeneratedKey} />
           {/if}
         </section>
       {/if}
@@ -473,46 +474,6 @@
       grid-column: 1 / -1;
     }
 
-    .lab-preview-sign-algorithm-id {
-      color: var(--muted-foreground);
-      font-size: 0.7rem;
-    }
-
-    .lab-preview-sign-fields {
-      display: grid;
-      min-width: 0;
-      margin: 0;
-    }
-
-    .lab-preview-sign-fields > div {
-      display: grid;
-      grid-template-columns: minmax(7rem, 0.28fr) minmax(0, 1fr);
-      align-items: center;
-      gap: var(--space-3);
-      min-width: 0;
-      padding-block: var(--space-2);
-      border-top: 1px solid var(--border);
-    }
-
-    .lab-preview-sign-fields > div:first-child {
-      padding-top: 0;
-      border-top: 0;
-    }
-
-    .lab-preview-sign-fields > div:last-child {
-      padding-bottom: 0;
-    }
-
-    .lab-preview-sign-fields dt {
-      color: var(--muted-foreground);
-      font-size: 0.7rem;
-    }
-
-    .lab-preview-sign-fields dd {
-      min-width: 0;
-      margin: 0;
-    }
-
     .lab-extension-results > p {
       margin: 0;
       padding: var(--space-3);
@@ -529,11 +490,6 @@
 
       .lab-result-wide {
         grid-column: auto;
-      }
-
-      .lab-preview-sign-fields > div {
-        grid-template-columns: minmax(0, 1fr);
-        gap: var(--space-1);
       }
     }
   }
