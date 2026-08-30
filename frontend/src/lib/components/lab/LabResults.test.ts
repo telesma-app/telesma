@@ -269,10 +269,14 @@ describe("WebAuthn Lab results", () => {
 
     renderMakeResult(result);
 
-    expect(screen.getByText("previewSign · algorithm")).toBeInTheDocument();
+    expect(screen.getByText("previewSign")).toBeInTheDocument();
+    expect(screen.getByText("ESP256-split-ARKG")).toBeInTheDocument();
     expect(
       screen.getByText(String(Algorithm.AlgorithmESP256SplitARKGPlaceholder)),
     ).toBeInTheDocument();
+    expect(screen.getByText("keyHandle")).toBeInTheDocument();
+    expect(screen.getByText("publicKey")).toBeInTheDocument();
+    expect(screen.getByText("attestationObject")).toBeInTheDocument();
     expect(screen.getByText("0102")).toBeInTheDocument();
     expect(screen.getByText("a103")).toBeInTheDocument();
     expect(screen.getByText("a204")).toBeInTheDocument();

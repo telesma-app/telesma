@@ -416,6 +416,7 @@
   "lab_preview_sign_additional_arguments": "Additional arguments (CBOR hex)",
   "lab_preview_sign_additional_arguments_description": "Algorithm-specific CBOR map encoded as hexadecimal. Filled automatically when an ESP256-split-ARKG key is handed off.",
   "lab_preview_sign_attestation_object": "previewSign attestation object",
+  "lab_preview_sign_generated_key_description": "Authenticator-generated signing key bound to this passkey.",
   "lab_preview_sign_key_handle": "previewSign key handle",
   "lab_preview_sign_key_handle_description": "Hex key handle returned by previewSign during MakeCredential.",
   "lab_preview_sign_public_key": "previewSign public key COSE",

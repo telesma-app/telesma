@@ -416,6 +416,7 @@
   "lab_preview_sign_additional_arguments": "Дополнительные аргументы (CBOR hex)",
   "lab_preview_sign_additional_arguments_description": "CBOR-карта параметров алгоритма в hex. Заполняется автоматически при переносе ключа ESP256-split-ARKG.",
   "lab_preview_sign_attestation_object": "Объект аттестации previewSign",
+  "lab_preview_sign_generated_key_description": "Ключ подписи, созданный аутентификатором и привязанный к этому ключу доступа.",
   "lab_preview_sign_key_handle": "Key handle previewSign",
   "lab_preview_sign_key_handle_description": "Key handle в hex, возвращённый previewSign во время MakeCredential.",
   "lab_preview_sign_public_key": "Открытый ключ COSE previewSign",

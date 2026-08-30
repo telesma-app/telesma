@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Algorithm } from "../../../../bindings/github.com/telesma-app/ctap/cose";
   import type {
     MakeCredentialPreview,
     MakeCredentialResult as MakeCredentialResultDTO,
@@ -7,6 +8,7 @@
   import type { AttestationTrustAssessment } from "../../../../bindings/github.com/telesma-app/mds/model";
 
   import { Badge } from "$lib/components/ui/badge";
+  import * as Card from "$lib/components/ui/card";
   import type { LabVerificationState } from "$lib/features/lab/state";
   import { base64ToHex, base64ToUTF8 } from "$lib/lab-input";
   import { sanitizedJson } from "$lib/redaction";
@@ -44,13 +46,12 @@
 
   let previewSignGeneratedKey = $derived(clientExtensions?.previewSign?.generatedKey);
 
+  let hasStandardWebAuthnOutputs = $derived(
+    Boolean(clientExtensions?.credProps || clientExtensions?.prf || clientExtensions?.largeBlob),
+  );
+
   let hasWebAuthnOutputs = $derived(
-    Boolean(
-      clientExtensions?.credProps ||
-      clientExtensions?.prf ||
-      clientExtensions?.largeBlob ||
-      clientExtensions?.previewSign,
-    ),
+    Boolean(hasStandardWebAuthnOutputs || clientExtensions?.previewSign),
   );
 
   let hasCTAPOutputs = $derived(
@@ -146,6 +147,12 @@
     return value === null || value === undefined ? m.lab_not_reported() : booleanLabel(value);
   }
 
+  function previewSignAlgorithmLabel(algorithm: number) {
+    return algorithm === Algorithm.AlgorithmESP256SplitARKGPlaceholder
+      ? "ESP256-split-ARKG"
+      : "COSE algorithm";
+  }
+
   function hexByteCount(value: string) {
     return Math.floor(value.length / 2);
   }
@@ -215,92 +222,109 @@
         >
           <h5 id="lab-make-webauthn-outputs-title">{m.lab_webauthn_extension_outputs()}</h5>
 
-          <dl class="lab-extension-result-list">
-            {#if clientExtensions?.credProps}
-              <div>
-                <dt>credProps · rk</dt>
-                <dd>{nullableBooleanLabel(clientExtensions.credProps.rk)}</dd>
-              </div>
-            {/if}
-
-            {#if clientExtensions?.largeBlob}
-              <div>
-                <dt>largeBlob · supported</dt>
-                <dd>{booleanLabel(clientExtensions.largeBlob.supported)}</dd>
-              </div>
-            {/if}
-
-            {#if clientExtensions?.prf}
-              <div>
-                <dt>prf · enabled</dt>
-                <dd>{booleanLabel(clientExtensions.prf.enabled)}</dd>
-              </div>
-
-              {#if clientExtensions.prf.results}
+          {#if hasStandardWebAuthnOutputs}
+            <dl class="lab-extension-result-list">
+              {#if clientExtensions?.credProps}
                 <div>
-                  <dt>prf · first</dt>
-                  <dd>
-                    {#key clientExtensions.prf.results.first}<LabSecretValue
-                        valueHex={base64ToHex(clientExtensions.prf.results.first)}
-                      />{/key}
-                  </dd>
+                  <dt>credProps · rk</dt>
+                  <dd>{nullableBooleanLabel(clientExtensions.credProps.rk)}</dd>
+                </div>
+              {/if}
+
+              {#if clientExtensions?.largeBlob}
+                <div>
+                  <dt>largeBlob · supported</dt>
+                  <dd>{booleanLabel(clientExtensions.largeBlob.supported)}</dd>
+                </div>
+              {/if}
+
+              {#if clientExtensions?.prf}
+                <div>
+                  <dt>prf · enabled</dt>
+                  <dd>{booleanLabel(clientExtensions.prf.enabled)}</dd>
                 </div>
 
-                {#if clientExtensions.prf.results.second !== undefined && clientExtensions.prf.results.second !== null}
+                {#if clientExtensions.prf.results}
                   <div>
-                    <dt>prf · second</dt>
+                    <dt>prf · first</dt>
                     <dd>
-                      {#key clientExtensions.prf.results.second}<LabSecretValue
-                          valueHex={base64ToHex(clientExtensions.prf.results.second)}
+                      {#key clientExtensions.prf.results.first}<LabSecretValue
+                          valueHex={base64ToHex(clientExtensions.prf.results.first)}
                         />{/key}
                     </dd>
                   </div>
+
+                  {#if clientExtensions.prf.results.second !== undefined && clientExtensions.prf.results.second !== null}
+                    <div>
+                      <dt>prf · second</dt>
+                      <dd>
+                        {#key clientExtensions.prf.results.second}<LabSecretValue
+                            valueHex={base64ToHex(clientExtensions.prf.results.second)}
+                          />{/key}
+                      </dd>
+                    </div>
+                  {/if}
+                {:else}
+                  <div>
+                    <dt>prf · results</dt>
+                    <dd>{m.lab_not_reported()}</dd>
+                  </div>
                 {/if}
-              {:else}
-                <div>
-                  <dt>prf · results</dt>
-                  <dd>{m.lab_not_reported()}</dd>
-                </div>
               {/if}
-            {/if}
+            </dl>
+          {/if}
 
-            {#if previewSignGeneratedKey}
-              <div>
-                <dt>previewSign · algorithm</dt>
-                <dd><code>{previewSignGeneratedKey.algorithm}</code></dd>
-              </div>
+          {#if previewSignGeneratedKey}
+            <Card.Root size="sm">
+              <Card.Header>
+                <Card.Title>previewSign</Card.Title>
+                <Card.Description>{m.lab_preview_sign_generated_key_description()}</Card.Description
+                >
+                <Card.Action>
+                  <Badge variant="outline">
+                    <span>{previewSignAlgorithmLabel(previewSignGeneratedKey.algorithm)}</span>
+                    <code class="lab-preview-sign-algorithm-id"
+                      >{previewSignGeneratedKey.algorithm}</code
+                    >
+                  </Badge>
+                </Card.Action>
+              </Card.Header>
 
-              <div class="lab-result-wide">
-                <dt>previewSign · keyHandle</dt>
-                <dd>
-                  <LabHexValue
-                    label={m.lab_preview_sign_key_handle()}
-                    value={previewSignGeneratedKey.keyHandleHex}
-                  />
-                </dd>
-              </div>
+              <Card.Content>
+                <dl class="lab-preview-sign-fields">
+                  <div>
+                    <dt>keyHandle</dt>
+                    <dd>
+                      <LabHexValue
+                        label={m.lab_preview_sign_key_handle()}
+                        value={previewSignGeneratedKey.keyHandleHex}
+                      />
+                    </dd>
+                  </div>
 
-              <div class="lab-result-wide">
-                <dt>previewSign · publicKey</dt>
-                <dd>
-                  <LabHexValue
-                    label={m.lab_preview_sign_public_key()}
-                    value={previewSignGeneratedKey.publicKeyCOSEHex}
-                  />
-                </dd>
-              </div>
+                  <div>
+                    <dt>publicKey</dt>
+                    <dd>
+                      <LabHexValue
+                        label={m.lab_preview_sign_public_key()}
+                        value={previewSignGeneratedKey.publicKeyCOSEHex}
+                      />
+                    </dd>
+                  </div>
 
-              <div class="lab-result-wide">
-                <dt>previewSign · attestationObject</dt>
-                <dd>
-                  <LabHexValue
-                    label={m.lab_preview_sign_attestation_object()}
-                    value={previewSignGeneratedKey.attestationObjectCBORHex}
-                  />
-                </dd>
-              </div>
-            {/if}
-          </dl>
+                  <div>
+                    <dt>attestationObject</dt>
+                    <dd>
+                      <LabHexValue
+                        label={m.lab_preview_sign_attestation_object()}
+                        value={previewSignGeneratedKey.attestationObjectCBORHex}
+                      />
+                    </dd>
+                  </div>
+                </dl>
+              </Card.Content>
+            </Card.Root>
+          {/if}
         </section>
       {/if}
 
@@ -449,6 +473,46 @@
       grid-column: 1 / -1;
     }
 
+    .lab-preview-sign-algorithm-id {
+      color: var(--muted-foreground);
+      font-size: 0.7rem;
+    }
+
+    .lab-preview-sign-fields {
+      display: grid;
+      min-width: 0;
+      margin: 0;
+    }
+
+    .lab-preview-sign-fields > div {
+      display: grid;
+      grid-template-columns: minmax(7rem, 0.28fr) minmax(0, 1fr);
+      align-items: center;
+      gap: var(--space-3);
+      min-width: 0;
+      padding-block: var(--space-2);
+      border-top: 1px solid var(--border);
+    }
+
+    .lab-preview-sign-fields > div:first-child {
+      padding-top: 0;
+      border-top: 0;
+    }
+
+    .lab-preview-sign-fields > div:last-child {
+      padding-bottom: 0;
+    }
+
+    .lab-preview-sign-fields dt {
+      color: var(--muted-foreground);
+      font-size: 0.7rem;
+    }
+
+    .lab-preview-sign-fields dd {
+      min-width: 0;
+      margin: 0;
+    }
+
     .lab-extension-results > p {
       margin: 0;
       padding: var(--space-3);
@@ -465,6 +529,11 @@
 
       .lab-result-wide {
         grid-column: auto;
+      }
+
+      .lab-preview-sign-fields > div {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-1);
       }
     }
   }
