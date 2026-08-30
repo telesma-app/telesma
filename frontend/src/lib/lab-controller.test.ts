@@ -2,6 +2,7 @@ import { get } from "svelte/store";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AttestationStatementFormatIdentifier } from "../../bindings/github.com/telesma-app/ctap/attestation";
+import { Algorithm } from "../../bindings/github.com/telesma-app/ctap/cose";
 import { PublicKeyCredentialType } from "../../bindings/github.com/telesma-app/ctap/credential";
 import { VerificationFlow } from "../../bindings/github.com/telesma-app/kit";
 import { Kind as OperationKind } from "../../bindings/github.com/telesma-app/kit/model/operation";
@@ -10,7 +11,12 @@ import { DecodeMode } from "../../bindings/github.com/telesma-app/kit/model/larg
 import {
   CredentialVerificationMaterial,
   GetAssertionVerification,
+  MakeCredentialClientExtensionResults,
+  MakeCredentialExtensionResults,
+  MakeCredentialPreviewSignOutput,
   MakeCredentialVerification,
+  PreviewSignGeneratedKey,
+  PreviewSignARKGP256Derivation,
   VerificationStatus,
 } from "../../bindings/github.com/telesma-app/kit/model/webauthn";
 import {
@@ -109,6 +115,8 @@ function makePreviewEnvelope(): MakeCredentialEnvelope {
 function makeResultEnvelope(
   rpID = "lab.example",
   credentialIDHex = "cafe",
+  previewSignKeyHandleHex?: string,
+  previewSignAlgorithm = Algorithm.AlgorithmESP256SplitARKGPlaceholder,
 ): MakeCredentialEnvelope {
   const envelope = makePreviewEnvelope();
 
@@ -126,6 +134,21 @@ function makeResultEnvelope(
     userPresent: true,
     userVerified: false,
     enterpriseAttestation: false,
+    extensionResults:
+      previewSignKeyHandleHex === undefined
+        ? undefined
+        : new MakeCredentialExtensionResults({
+            client: new MakeCredentialClientExtensionResults({
+              previewSign: new MakeCredentialPreviewSignOutput({
+                generatedKey: new PreviewSignGeneratedKey({
+                  keyHandleHex: previewSignKeyHandleHex,
+                  publicKeyCOSEHex: "a5010203262001215820",
+                  algorithm: previewSignAlgorithm,
+                  attestationObjectCBORHex: "a363666d74",
+                }),
+              }),
+            }),
+          }),
   };
 
   return envelope;
@@ -157,7 +180,12 @@ function getResultEnvelope(rpID = "example.com"): GetAssertionEnvelope {
   } as GetAssertionEnvelope;
 }
 
-function seedSuccessfulMake(rpID = "example.com", credentialIDHex = "cafe") {
+function seedSuccessfulMake(
+  rpID = "example.com",
+  credentialIDHex = "cafe",
+  previewSignKeyHandleHex?: string,
+  previewSignAlgorithm = Algorithm.AlgorithmESP256SplitARKGPlaceholder,
+) {
   const current = get(labState);
   const previewRequest: MakeCredentialRequest = {
     ...buildMakeCredentialRequest(current.makeDraft),
@@ -168,7 +196,12 @@ function seedSuccessfulMake(rpID = "example.com", credentialIDHex = "cafe") {
     ...previewRequest,
     dryRun: false,
   };
-  const responseEnvelope = makeResultEnvelope(rpID, credentialIDHex);
+  const responseEnvelope = makeResultEnvelope(
+    rpID,
+    credentialIDHex,
+    previewSignKeyHandleHex,
+    previewSignAlgorithm,
+  );
 
   labState.set({
     ...current,
@@ -194,6 +227,12 @@ beforeEach(() => {
   });
   vi.spyOn(api, "verifyMakeCredential").mockResolvedValue(new MakeCredentialVerification());
   vi.spyOn(api, "verifyGetAssertion").mockResolvedValue(new GetAssertionVerification());
+  vi.spyOn(api, "derivePreviewSignARKGP256").mockResolvedValue(
+    new PreviewSignARKGP256Derivation({
+      additionalArgumentsHex: "a3033a00010002215820010222582a6578616d706c652e636f6d",
+      verificationKeyCOSEHex: "a50102033801002258200102",
+    }),
+  );
   vi.spyOn(api, "lookupMDS").mockResolvedValue({
     result: new LookupResult(),
   });
@@ -681,7 +720,80 @@ describe("WebAuthn Lab request lifecycle", () => {
 });
 
 describe("WebAuthn Lab credential handoff", () => {
-  it("preserves existing entries and does not duplicate a matching credential for the same RP", () => {
+  it("derives ARKG-P256 and maps it to WebAuthn additionalArgs", async () => {
+    seedSuccessfulMake("example.com", "cafe", "0102aabb");
+    const before = get(labState).getDraft.extensions.previewSign;
+
+    expect(await handoffLabCredential()).toBe(true);
+    expect(api.derivePreviewSignARKGP256).toHaveBeenCalledWith(
+      expect.objectContaining({
+        context: "example.com",
+        generatedKey: expect.objectContaining({ keyHandleHex: "0102aabb" }),
+      }),
+    );
+    expect(get(labState).getDraft.extensions.previewSign).toEqual({
+      ...before,
+      included: true,
+      algorithm: Algorithm.AlgorithmESP256SplitARKGPlaceholder,
+      keyHandleHex: "0102aabb",
+      additionalArgumentsHex: "a3033a00010002215820010222582a6578616d706c652e636f6d",
+      verificationKeyCOSEHex: "a50102033801002258200102",
+    });
+  });
+
+  it("preserves the ARKG-P256 derivation through replacement confirmation", async () => {
+    seedSuccessfulMake("created.example", "cafe", "0102aabb");
+    expect(updateLabGetAssertionDraft({ rpID: "other.example" })).toBe(true);
+
+    expect(await handoffLabCredential()).toBe(false);
+    expect(get(labState).pendingHandoff).toMatchObject({
+      previewSign: {
+        algorithm: Algorithm.AlgorithmESP256SplitARKGPlaceholder,
+        keyHandleHex: "0102aabb",
+        arkgP256: {
+          additionalArgumentsHex: "a3033a00010002215820010222582a6578616d706c652e636f6d",
+          verificationKeyCOSEHex: "a50102033801002258200102",
+        },
+      },
+    });
+    expect(confirmLabHandoff()).toBe(true);
+    expect(get(labState).getDraft.extensions.previewSign).toMatchObject({
+      included: true,
+      algorithm: Algorithm.AlgorithmESP256SplitARKGPlaceholder,
+      keyHandleHex: "0102aabb",
+      additionalArgumentsHex: "a3033a00010002215820010222582a6578616d706c652e636f6d",
+    });
+  });
+
+  it("does not mutate the GetAssertion scenario when ARKG-P256 derivation fails", async () => {
+    seedSuccessfulMake("example.com", "cafe", "0102aabb");
+    const before = get(labState).getDraft;
+    vi.mocked(api.derivePreviewSignARKGP256).mockRejectedValueOnce(new Error("derive failed"));
+
+    expect(await handoffLabCredential()).toBe(false);
+    expect(get(labState).getDraft).toBe(before);
+    expect(get(labState).pendingHandoff).toBeNull();
+    expect(toastMocks.error).toHaveBeenCalledWith(
+      "Could not derive the previewSign ARKG-P256 key",
+      expect.any(Object),
+    );
+  });
+
+  it("does not apply ARKG-P256 derivation to another previewSign algorithm", async () => {
+    seedSuccessfulMake("example.com", "cafe", "0102aabb", Algorithm.AlgorithmES256);
+
+    expect(await handoffLabCredential()).toBe(true);
+    expect(api.derivePreviewSignARKGP256).not.toHaveBeenCalled();
+    expect(get(labState).getDraft.extensions.previewSign).toMatchObject({
+      included: true,
+      algorithm: Algorithm.AlgorithmES256,
+      keyHandleHex: "0102aabb",
+      additionalArgumentsHex: "",
+      verificationKeyCOSEHex: "",
+    });
+  });
+
+  it("preserves existing entries and does not duplicate a matching credential for the same RP", async () => {
     seedSuccessfulMake("example.com", "cafe");
     expect(
       updateLabGetAssertionDraft({
@@ -689,7 +801,7 @@ describe("WebAuthn Lab credential handoff", () => {
       }),
     ).toBe(true);
 
-    expect(handoffLabCredential()).toBe(true);
+    expect(await handoffLabCredential()).toBe(true);
     expect(get(labState).getDraft).toMatchObject({
       rpID: "example.com",
       allowList: [{ credentialIDHex: "beef" }, { credentialIDHex: "CAFE" }],
@@ -709,7 +821,7 @@ describe("WebAuthn Lab credential handoff", () => {
     });
   });
 
-  it("fills an empty RP and appends the created credential while preserving other entries", () => {
+  it("fills an empty RP and appends the created credential while preserving other entries", async () => {
     seedSuccessfulMake("created.example", "cafe");
     expect(
       updateLabGetAssertionDraft({
@@ -718,7 +830,7 @@ describe("WebAuthn Lab credential handoff", () => {
       }),
     ).toBe(true);
 
-    expect(handoffLabCredential()).toBe(true);
+    expect(await handoffLabCredential()).toBe(true);
     expect(get(labState).getDraft).toMatchObject({
       rpID: "created.example",
       allowList: [{ credentialIDHex: "beef" }, { credentialIDHex: "cafe" }],
@@ -733,7 +845,7 @@ describe("WebAuthn Lab credential handoff", () => {
     expect(get(labState).getStep.phase).toBe("editing");
   });
 
-  it("requires confirmation for an RP mismatch; cancel is inert and confirm replaces the scenario", () => {
+  it("requires confirmation for an RP mismatch; cancel is inert and confirm replaces the scenario", async () => {
     seedSuccessfulMake("created.example", "cafe");
     expect(
       updateLabGetAssertionDraft({
@@ -742,7 +854,7 @@ describe("WebAuthn Lab credential handoff", () => {
       }),
     ).toBe(true);
 
-    expect(handoffLabCredential()).toBe(false);
+    expect(await handoffLabCredential()).toBe(false);
     expect(get(labState).pendingHandoff).toEqual({
       rpID: "created.example",
       credentialIDHex: "cafe",
@@ -757,7 +869,7 @@ describe("WebAuthn Lab credential handoff", () => {
     cancelLabHandoff();
     expect(get(labState).pendingHandoff).toBeNull();
     expect(get(labState).getDraft.rpID).toBe("other.example");
-    expect(handoffLabCredential()).toBe(false);
+    expect(await handoffLabCredential()).toBe(false);
     expect(confirmLabHandoff()).toBe(true);
     expect(get(labState).getDraft).toMatchObject({
       rpID: "created.example",
@@ -773,7 +885,7 @@ describe("WebAuthn Lab credential handoff", () => {
     expect(get(labState).getStep.phase).toBe("editing");
   });
 
-  it("requires confirmation when GetAssertion has a fixed result even for the same RP", () => {
+  it("requires confirmation when GetAssertion has a fixed result even for the same RP", async () => {
     seedSuccessfulMake("example.com", "cafe");
     expect(
       updateLabGetAssertionDraft({
@@ -796,7 +908,7 @@ describe("WebAuthn Lab credential handoff", () => {
       },
     });
 
-    expect(handoffLabCredential()).toBe(false);
+    expect(await handoffLabCredential()).toBe(false);
     expect(get(labState).pendingHandoff).toEqual({
       rpID: "example.com",
       credentialIDHex: "cafe",

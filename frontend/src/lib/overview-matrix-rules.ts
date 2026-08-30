@@ -39,6 +39,11 @@ export const EXTENSION_ROWS = [
     name: m.matrix_name_third_party_payment,
     description: m.matrix_desc_third_party_payment,
   },
+  {
+    id: "previewSign",
+    name: m.matrix_name_preview_sign,
+    description: m.matrix_desc_preview_sign,
+  },
 ] as const;
 
 export function formatCertificationValue(id: string, input: number | undefined) {

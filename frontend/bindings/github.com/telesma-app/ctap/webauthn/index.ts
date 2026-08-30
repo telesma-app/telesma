@@ -6,11 +6,14 @@ export {
     AuthenticationExtensionsPRFInputs,
     AuthenticationExtensionsPRFValues,
     AuthenticationExtensionsPaymentInputs,
+    AuthenticationExtensionsPreviewSignInputs,
     CreateAuthenticationExtensionsClientInputs,
     CredentialPropertiesOutput,
     GetAuthenticationExtensionsClientInputs,
     HMACGetSecretInput,
     PaymentCredentialInstrument,
     PaymentCurrencyAmount,
-    PaymentEntityLogo
+    PaymentEntityLogo,
+    PreviewSignGenerateKeyInputs,
+    PreviewSignSignInputs
 } from "./models.js";

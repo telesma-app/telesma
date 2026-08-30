@@ -20,6 +20,7 @@
 
   import { m } from "../../../paraglide/messages.js";
 
+  import LabAlgorithmEditor from "$lib/components/lab/LabAlgorithmEditor.svelte";
   import LabBinaryEditor from "$lib/components/lab/LabBinaryEditor.svelte";
   import LabExtensionItem, {
     type ExtensionStatus,
@@ -219,6 +220,24 @@
           onChange={(evalValue) => update("prf", { ...value.prf, eval: evalValue })}
         />
       {/if}
+    </LabExtensionItem>
+
+    <LabExtensionItem
+      value="previewSign"
+      title="previewSign"
+      description={m.lab_extension_preview_sign_create_description()}
+      included={value.previewSign.included}
+      {disabled}
+      status={status(ExtensionIdentifier.ExtensionIdentifierPreviewSign)}
+      onInclude={(included) => include("previewSign", included, value.previewSign)}
+    >
+      <LabAlgorithmEditor
+        id="lab-ext-preview-sign-algorithms"
+        values={value.previewSign.algorithms}
+        {disabled}
+        invalid={hasError("make.extensions.previewSign.algorithms")}
+        onChange={(algorithms) => update("previewSign", { ...value.previewSign, algorithms })}
+      />
     </LabExtensionItem>
   </section>
 

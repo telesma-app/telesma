@@ -256,12 +256,23 @@ describe("buildOverviewRows", () => {
             FactOrigin.FactOriginDerived,
             true,
           ),
+          booleanFact(
+            FactID.FactIDExtensionPreviewSign,
+            "extensions.previewSign",
+            FactState.FactStateSupported,
+            FactOrigin.FactOriginDerived,
+            true,
+          ),
           listFact(FactID.FactIDCertifications, "certifications", ["FIDO=2"]),
         ]),
       }),
     });
 
     expect(rowBySource(rows, "extensions.credBlob").status).toBe("supported");
+    expect(rowBySource(rows, "extensions.previewSign")).toMatchObject({
+      name: "Preview signing",
+      status: "supported",
+    });
     expect(rowBySource(rows, "certifications").value).toContain("FIDO L1+");
   });
 

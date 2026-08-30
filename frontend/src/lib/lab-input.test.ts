@@ -1,15 +1,19 @@
 import { describe, expect, it } from "vitest";
 
+import { Algorithm } from "../../bindings/github.com/telesma-app/ctap/cose";
 import { VerificationFlow } from "../../bindings/github.com/telesma-app/kit";
 import { LargeBlobSupport } from "../../bindings/github.com/telesma-app/ctap/extension";
 import {
   AuthenticationExtensionsLargeBlobInputs,
   AuthenticationExtensionsPaymentInputs,
+  AuthenticationExtensionsPreviewSignInputs,
   AuthenticationExtensionsPRFInputs,
   AuthenticationExtensionsPRFValues,
   CreateAuthenticationExtensionsClientInputs,
   GetAuthenticationExtensionsClientInputs,
   HMACGetSecretInput,
+  PreviewSignGenerateKeyInputs,
+  PreviewSignSignInputs,
 } from "../../bindings/github.com/telesma-app/ctap/webauthn";
 
 import { createLabState } from "$lib/features/lab/state";
@@ -98,6 +102,9 @@ describe("WebAuthn Lab default state", () => {
     expect(Object.values(state.getDraft.extensions).every((extension) => !extension.included)).toBe(
       true,
     );
+    expect(state.makeDraft.extensions.previewSign.algorithms).toEqual([
+      String(Algorithm.AlgorithmESP256SplitARKGPlaceholder),
+    ]);
   });
 });
 
@@ -349,6 +356,8 @@ describe("WebAuthn Lab request builders", () => {
     expect(request.extensions?.hmacGetSecret).toBeInstanceOf(HMACGetSecretInput);
     expect(base64ToHex(request.extensions!.hmacGetSecret!.salt1)).toBe("11".repeat(32));
     expect(request.extensions?.hmacGetSecret?.salt2).toBeUndefined();
+    expect(request.extensions?.previewSign).toBeUndefined();
+    expect(JSON.parse(JSON.stringify(request.extensions))).not.toHaveProperty("previewSign");
   });
 
   it("builds a direct WebAuthn PRF eval with zero-length BufferSources intact", () => {
@@ -417,6 +426,41 @@ describe("WebAuthn Lab request builders", () => {
     expect(getPRF?.evalByCredential).toBeUndefined();
   });
 
+  it("builds previewSign key generation and shared per-credential signing inputs", () => {
+    const state = createLabState(sequentialRandom());
+
+    state.makeDraft.extensions.previewSign = {
+      included: true,
+      algorithms: [String(Algorithm.AlgorithmESP256SplitARKGPlaceholder)],
+    };
+    state.getDraft.allowList = [{ credentialIDHex: "aabb" }, { credentialIDHex: "ccdd" }];
+    state.getDraft.extensions.previewSign = {
+      included: true,
+      keyHandleHex: "0102",
+      toBeSigned: { mode: "utf8", value: "sign me" },
+      additionalArgumentsHex: "a1033a00010002",
+      verificationKeyCOSEHex: "",
+    };
+
+    const makePreviewSign = buildMakeCredentialRequest(state.makeDraft).extensions?.previewSign;
+    const getPreviewSign = buildGetAssertionRequest(state.getDraft).extensions?.previewSign;
+
+    expect(makePreviewSign).toBeInstanceOf(AuthenticationExtensionsPreviewSignInputs);
+    expect(makePreviewSign?.generateKey).toBeInstanceOf(PreviewSignGenerateKeyInputs);
+    expect(makePreviewSign?.generateKey?.algorithms).toEqual([
+      Algorithm.AlgorithmESP256SplitARKGPlaceholder,
+    ]);
+    expect(getPreviewSign).toBeInstanceOf(AuthenticationExtensionsPreviewSignInputs);
+    expect(Object.keys(getPreviewSign!.signByCredential!)).toEqual(["qrs", "zN0"]);
+
+    for (const signInputs of Object.values(getPreviewSign!.signByCredential!)) {
+      expect(signInputs).toBeInstanceOf(PreviewSignSignInputs);
+      expect(base64ToHex(signInputs!.keyHandle)).toBe("0102");
+      expect(base64ToUTF8(signInputs!.tbs)).toBe("sign me");
+      expect(base64ToHex(signInputs!.additionalArgs!)).toBe("a1033a00010002");
+    }
+  });
+
   it("builds direct largeBlob and payment inputs without losing empty writes", () => {
     const state = createLabState(sequentialRandom());
 
@@ -448,6 +492,69 @@ describe("WebAuthn Lab request builders", () => {
 });
 
 describe("WebAuthn Lab extension validation", () => {
+  it("validates previewSign algorithms, handle, signed bytes, and additional arguments", () => {
+    const state = createLabState(sequentialRandom());
+
+    state.makeDraft.extensions.previewSign = {
+      included: true,
+      algorithms: [
+        String(Algorithm.AlgorithmESP256SplitARKGPlaceholder),
+        String(Algorithm.AlgorithmESP256SplitARKGPlaceholder),
+        "invalid",
+      ],
+    };
+    state.getDraft.extensions.previewSign = {
+      included: true,
+      keyHandleHex: "abc",
+      toBeSigned: { mode: "hex", value: "" },
+      additionalArgumentsHex: "not-hex",
+      verificationKeyCOSEHex: "",
+    };
+
+    expect(validateMakeCredentialDraft(state.makeDraft).errors).toEqual(
+      expect.arrayContaining([
+        {
+          field: "make.extensions.previewSign.algorithms.1",
+          code: "duplicate-algorithm",
+        },
+        {
+          field: "make.extensions.previewSign.algorithms.2",
+          code: "invalid-algorithm",
+        },
+      ]),
+    );
+    expect(validateGetAssertionDraft(state.getDraft).errors).toEqual(
+      expect.arrayContaining([
+        { field: "get.allowList", code: "required" },
+        { field: "get.extensions.previewSign.keyHandleHex", code: "invalid-hex" },
+        { field: "get.extensions.previewSign.toBeSigned", code: "required" },
+        {
+          field: "get.extensions.previewSign.additionalArgumentsHex",
+          code: "invalid-hex",
+        },
+      ]),
+    );
+  });
+
+  it("requires a 32-byte digest for transferred ESP256-split-ARKG signing material", () => {
+    const state = createLabState(sequentialRandom());
+
+    state.getDraft.allowList = [{ credentialIDHex: "aabb" }];
+    state.getDraft.extensions.previewSign = {
+      included: true,
+      algorithm: Algorithm.AlgorithmESP256SplitARKGPlaceholder,
+      keyHandleHex: "0102",
+      toBeSigned: { mode: "utf8", value: "not a digest" },
+      additionalArgumentsHex: "a1033a00010002",
+      verificationKeyCOSEHex: "a5010203",
+    };
+
+    expect(validateGetAssertionDraft(state.getDraft).errors).toContainEqual({
+      field: "get.extensions.previewSign.toBeSigned",
+      code: "invalid-length",
+    });
+  });
+
   it("rejects malformed direct largeBlob write input", () => {
     const state = createLabState(sequentialRandom());
 

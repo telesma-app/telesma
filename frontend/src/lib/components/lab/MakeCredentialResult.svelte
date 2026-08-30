@@ -42,8 +42,15 @@
 
   let authenticatorExtensions = $derived(result.extensionResults?.authenticator);
 
+  let previewSignGeneratedKey = $derived(clientExtensions?.previewSign?.generatedKey);
+
   let hasWebAuthnOutputs = $derived(
-    Boolean(clientExtensions?.credProps || clientExtensions?.prf || clientExtensions?.largeBlob),
+    Boolean(
+      clientExtensions?.credProps ||
+      clientExtensions?.prf ||
+      clientExtensions?.largeBlob ||
+      clientExtensions?.previewSign,
+    ),
   );
 
   let hasCTAPOutputs = $derived(
@@ -63,7 +70,7 @@
     const clientDataJSON = base64ToUTF8(preview.input.clientDataJSON);
     const resultJSON = sanitizedJson(result) ?? "null";
 
-    return [
+    const details: LabTechnicalDataItem[] = [
       {
         id: "client-data-json",
         label: m.lab_client_data(),
@@ -96,15 +103,39 @@
         byteCount: hexByteCount(result.attestationObjectCBORHex),
         source: result.attestationObjectCBORHex,
       },
-      {
-        id: "result",
-        label: m.lab_result(),
-        syntax: "json",
-        type: "JSON",
-        byteCount: utf8ByteCount(resultJSON),
-        source: resultJSON,
-      },
     ];
+
+    if (previewSignGeneratedKey) {
+      details.push(
+        {
+          id: "preview-sign-public-key",
+          label: m.lab_preview_sign_public_key(),
+          syntax: "hex",
+          type: "COSE",
+          byteCount: hexByteCount(previewSignGeneratedKey.publicKeyCOSEHex),
+          source: previewSignGeneratedKey.publicKeyCOSEHex,
+        },
+        {
+          id: "preview-sign-attestation-object",
+          label: m.lab_preview_sign_attestation_object(),
+          syntax: "hex",
+          type: "CBOR",
+          byteCount: hexByteCount(previewSignGeneratedKey.attestationObjectCBORHex),
+          source: previewSignGeneratedKey.attestationObjectCBORHex,
+        },
+      );
+    }
+
+    details.push({
+      id: "result",
+      label: m.lab_result(),
+      syntax: "json",
+      type: "JSON",
+      byteCount: utf8ByteCount(resultJSON),
+      source: resultJSON,
+    });
+
+    return details;
   });
 
   function booleanLabel(value: boolean) {
@@ -231,6 +262,43 @@
                   <dd>{m.lab_not_reported()}</dd>
                 </div>
               {/if}
+            {/if}
+
+            {#if previewSignGeneratedKey}
+              <div>
+                <dt>previewSign · algorithm</dt>
+                <dd><code>{previewSignGeneratedKey.algorithm}</code></dd>
+              </div>
+
+              <div class="lab-result-wide">
+                <dt>previewSign · keyHandle</dt>
+                <dd>
+                  <LabHexValue
+                    label={m.lab_preview_sign_key_handle()}
+                    value={previewSignGeneratedKey.keyHandleHex}
+                  />
+                </dd>
+              </div>
+
+              <div class="lab-result-wide">
+                <dt>previewSign · publicKey</dt>
+                <dd>
+                  <LabHexValue
+                    label={m.lab_preview_sign_public_key()}
+                    value={previewSignGeneratedKey.publicKeyCOSEHex}
+                  />
+                </dd>
+              </div>
+
+              <div class="lab-result-wide">
+                <dt>previewSign · attestationObject</dt>
+                <dd>
+                  <LabHexValue
+                    label={m.lab_preview_sign_attestation_object()}
+                    value={previewSignGeneratedKey.attestationObjectCBORHex}
+                  />
+                </dd>
+              </div>
             {/if}
           </dl>
         </section>

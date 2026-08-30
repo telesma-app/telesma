@@ -63,6 +63,7 @@ const extensionFactIDs = {
   "hmac-secret": FactID.FactIDExtensionHMACSecret,
   "hmac-secret-mc": FactID.FactIDExtensionHMACSecretMC,
   thirdPartyPayment: FactID.FactIDExtensionThirdPartyPayment,
+  previewSign: FactID.FactIDExtensionPreviewSign,
 } as const;
 
 export function buildOverviewRows(

@@ -7,6 +7,9 @@ import { Create as $Create } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as cose$0 from "../cose/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as credential$0 from "../credential/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -162,6 +165,33 @@ export class AuthenticationExtensionsPaymentInputs {
     }
 }
 
+export class AuthenticationExtensionsPreviewSignInputs {
+    "generateKey"?: PreviewSignGenerateKeyInputs | null;
+    "signByCredential"?: { [_ in string]?: PreviewSignSignInputs };
+
+    /** Creates a new AuthenticationExtensionsPreviewSignInputs instance. */
+    constructor($$source: Partial<AuthenticationExtensionsPreviewSignInputs> = {}) {
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new AuthenticationExtensionsPreviewSignInputs instance from a string or object.
+     */
+    static createFrom($$source: any = {}): AuthenticationExtensionsPreviewSignInputs {
+        const $$createField0_0 = $$createType11;
+        const $$createField1_0 = $$createType13;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("generateKey" in $$parsedSource) {
+            $$parsedSource["generateKey"] = $$createField0_0($$parsedSource["generateKey"]);
+        }
+        if ("signByCredential" in $$parsedSource) {
+            $$parsedSource["signByCredential"] = $$createField1_0($$parsedSource["signByCredential"]);
+        }
+        return new AuthenticationExtensionsPreviewSignInputs($$parsedSource as Partial<AuthenticationExtensionsPreviewSignInputs>);
+    }
+}
+
 export class CreateAuthenticationExtensionsClientInputs {
     "credBlob"?: string;
     "credProps"?: boolean;
@@ -174,9 +204,13 @@ export class CreateAuthenticationExtensionsClientInputs {
     "pinComplexityPolicy"?: boolean;
     "payment"?: AuthenticationExtensionsPaymentInputs;
     "prf"?: AuthenticationExtensionsPRFInputs;
+    "previewSign": AuthenticationExtensionsPreviewSignInputs;
 
     /** Creates a new CreateAuthenticationExtensionsClientInputs instance. */
     constructor($$source: Partial<CreateAuthenticationExtensionsClientInputs> = {}) {
+        if (!("previewSign" in $$source)) {
+            this["previewSign"] = (new AuthenticationExtensionsPreviewSignInputs());
+        }
 
         Object.assign(this, $$source);
     }
@@ -186,10 +220,11 @@ export class CreateAuthenticationExtensionsClientInputs {
      */
     static createFrom($$source: any = {}): CreateAuthenticationExtensionsClientInputs {
         const $$createField0_0 = $Create.ByteSlice;
-        const $$createField5_0 = $$createType10;
-        const $$createField6_0 = $$createType11;
-        const $$createField9_0 = $$createType12;
-        const $$createField10_0 = $$createType13;
+        const $$createField5_0 = $$createType14;
+        const $$createField6_0 = $$createType15;
+        const $$createField9_0 = $$createType16;
+        const $$createField10_0 = $$createType17;
+        const $$createField11_0 = $$createType18;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("credBlob" in $$parsedSource) {
             $$parsedSource["credBlob"] = $$createField0_0($$parsedSource["credBlob"]);
@@ -205,6 +240,9 @@ export class CreateAuthenticationExtensionsClientInputs {
         }
         if ("prf" in $$parsedSource) {
             $$parsedSource["prf"] = $$createField10_0($$parsedSource["prf"]);
+        }
+        if ("previewSign" in $$parsedSource) {
+            $$parsedSource["previewSign"] = $$createField11_0($$parsedSource["previewSign"]);
         }
         return new CreateAuthenticationExtensionsClientInputs($$parsedSource as Partial<CreateAuthenticationExtensionsClientInputs>);
     }
@@ -234,9 +272,13 @@ export class GetAuthenticationExtensionsClientInputs {
     "largeBlob"?: AuthenticationExtensionsLargeBlobInputs;
     "payment"?: AuthenticationExtensionsPaymentInputs;
     "prf"?: AuthenticationExtensionsPRFInputs;
+    "previewSign": AuthenticationExtensionsPreviewSignInputs;
 
     /** Creates a new GetAuthenticationExtensionsClientInputs instance. */
     constructor($$source: Partial<GetAuthenticationExtensionsClientInputs> = {}) {
+        if (!("previewSign" in $$source)) {
+            this["previewSign"] = (new AuthenticationExtensionsPreviewSignInputs());
+        }
 
         Object.assign(this, $$source);
     }
@@ -245,10 +287,11 @@ export class GetAuthenticationExtensionsClientInputs {
      * Creates a new GetAuthenticationExtensionsClientInputs instance from a string or object.
      */
     static createFrom($$source: any = {}): GetAuthenticationExtensionsClientInputs {
-        const $$createField1_0 = $$createType10;
-        const $$createField2_0 = $$createType11;
-        const $$createField3_0 = $$createType12;
-        const $$createField4_0 = $$createType13;
+        const $$createField1_0 = $$createType14;
+        const $$createField2_0 = $$createType15;
+        const $$createField3_0 = $$createType16;
+        const $$createField4_0 = $$createType17;
+        const $$createField5_0 = $$createType18;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("hmacGetSecret" in $$parsedSource) {
             $$parsedSource["hmacGetSecret"] = $$createField1_0($$parsedSource["hmacGetSecret"]);
@@ -261,6 +304,9 @@ export class GetAuthenticationExtensionsClientInputs {
         }
         if ("prf" in $$parsedSource) {
             $$parsedSource["prf"] = $$createField4_0($$parsedSource["prf"]);
+        }
+        if ("previewSign" in $$parsedSource) {
+            $$parsedSource["previewSign"] = $$createField5_0($$parsedSource["previewSign"]);
         }
         return new GetAuthenticationExtensionsClientInputs($$parsedSource as Partial<GetAuthenticationExtensionsClientInputs>);
     }
@@ -377,6 +423,69 @@ export class PaymentEntityLogo {
     }
 }
 
+export class PreviewSignGenerateKeyInputs {
+    "algorithms": cose$0.Algorithm[];
+
+    /** Creates a new PreviewSignGenerateKeyInputs instance. */
+    constructor($$source: Partial<PreviewSignGenerateKeyInputs> = {}) {
+        if (!("algorithms" in $$source)) {
+            this["algorithms"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PreviewSignGenerateKeyInputs instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PreviewSignGenerateKeyInputs {
+        const $$createField0_0 = $$createType19;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("algorithms" in $$parsedSource) {
+            $$parsedSource["algorithms"] = $$createField0_0($$parsedSource["algorithms"]);
+        }
+        return new PreviewSignGenerateKeyInputs($$parsedSource as Partial<PreviewSignGenerateKeyInputs>);
+    }
+}
+
+export class PreviewSignSignInputs {
+    "keyHandle": string;
+    "tbs": string;
+    "additionalArgs"?: string;
+
+    /** Creates a new PreviewSignSignInputs instance. */
+    constructor($$source: Partial<PreviewSignSignInputs> = {}) {
+        if (!("keyHandle" in $$source)) {
+            this["keyHandle"] = "";
+        }
+        if (!("tbs" in $$source)) {
+            this["tbs"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new PreviewSignSignInputs instance from a string or object.
+     */
+    static createFrom($$source: any = {}): PreviewSignSignInputs {
+        const $$createField0_0 = $Create.ByteSlice;
+        const $$createField1_0 = $Create.ByteSlice;
+        const $$createField2_0 = $Create.ByteSlice;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("keyHandle" in $$parsedSource) {
+            $$parsedSource["keyHandle"] = $$createField0_0($$parsedSource["keyHandle"]);
+        }
+        if ("tbs" in $$parsedSource) {
+            $$parsedSource["tbs"] = $$createField1_0($$parsedSource["tbs"]);
+        }
+        if ("additionalArgs" in $$parsedSource) {
+            $$parsedSource["additionalArgs"] = $$createField2_0($$parsedSource["additionalArgs"]);
+        }
+        return new PreviewSignSignInputs($$parsedSource as Partial<PreviewSignSignInputs>);
+    }
+}
+
 // Private type creation functions
 const $$createType0 = AuthenticationExtensionsPRFValues.createFrom;
 const $$createType1 = $Create.Map($Create.Any, $$createType0);
@@ -388,7 +497,13 @@ const $$createType6 = PaymentCurrencyAmount.createFrom;
 const $$createType7 = $Create.Nullable($$createType6);
 const $$createType8 = PaymentCredentialInstrument.createFrom;
 const $$createType9 = $Create.Nullable($$createType8);
-const $$createType10 = HMACGetSecretInput.createFrom;
-const $$createType11 = AuthenticationExtensionsLargeBlobInputs.createFrom;
-const $$createType12 = AuthenticationExtensionsPaymentInputs.createFrom;
-const $$createType13 = AuthenticationExtensionsPRFInputs.createFrom;
+const $$createType10 = PreviewSignGenerateKeyInputs.createFrom;
+const $$createType11 = $Create.Nullable($$createType10);
+const $$createType12 = PreviewSignSignInputs.createFrom;
+const $$createType13 = $Create.Map($Create.Any, $$createType12);
+const $$createType14 = HMACGetSecretInput.createFrom;
+const $$createType15 = AuthenticationExtensionsLargeBlobInputs.createFrom;
+const $$createType16 = AuthenticationExtensionsPaymentInputs.createFrom;
+const $$createType17 = AuthenticationExtensionsPRFInputs.createFrom;
+const $$createType18 = AuthenticationExtensionsPreviewSignInputs.createFrom;
+const $$createType19 = $Create.Array($Create.Any);

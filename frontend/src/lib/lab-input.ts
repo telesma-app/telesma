@@ -1,4 +1,5 @@
 import { AttestationStatementFormatIdentifier } from "../../bindings/github.com/telesma-app/ctap/attestation";
+import { Algorithm } from "../../bindings/github.com/telesma-app/ctap/cose";
 import {
   PublicKeyCredentialDescriptor,
   PublicKeyCredentialParameters,
@@ -10,11 +11,14 @@ import { VerificationFlow } from "../../bindings/github.com/telesma-app/kit";
 import {
   AuthenticationExtensionsLargeBlobInputs,
   AuthenticationExtensionsPaymentInputs,
+  AuthenticationExtensionsPreviewSignInputs,
   AuthenticationExtensionsPRFInputs,
   AuthenticationExtensionsPRFValues,
   CreateAuthenticationExtensionsClientInputs,
   GetAuthenticationExtensionsClientInputs,
   HMACGetSecretInput,
+  PreviewSignGenerateKeyInputs,
+  PreviewSignSignInputs,
 } from "../../bindings/github.com/telesma-app/ctap/webauthn";
 import { AuthenticatorOptions } from "../../bindings/github.com/telesma-app/kit/model/webauthn";
 import { GetAssertionRequest, MakeCredentialRequest } from "../../bindings/telesma/service";
@@ -509,6 +513,23 @@ function validateMakeExtensions(
   if (extensions.prf.included && extensions.prf.useEval) {
     validatePRFValues("make.extensions.prf", extensions.prf.eval, errors);
   }
+
+  if (extensions.previewSign.included) {
+    if (extensions.previewSign.algorithms.length === 0) {
+      errors.push(issue("make.extensions.previewSign.algorithms", "required"));
+    }
+
+    const seenAlgorithms = new Set<number>();
+
+    extensions.previewSign.algorithms.forEach((algorithm, index) => {
+      const parsed = parseAlgorithm(algorithm);
+      const field = `make.extensions.previewSign.algorithms.${index}`;
+
+      if (parsed === null) errors.push(issue(field, "invalid-algorithm"));
+      else if (seenAlgorithms.has(parsed)) errors.push(issue(field, "duplicate-algorithm"));
+      else seenAlgorithms.add(parsed);
+    });
+  }
 }
 
 function validateGetExtensions(draft: GetAssertionDraft, errors: LabValidationIssue[]) {
@@ -525,6 +546,38 @@ function validateGetExtensions(draft: GetAssertionDraft, errors: LabValidationIs
       extensions.largeBlob.payload,
       errors,
     );
+  }
+
+  if (extensions.previewSign.included) {
+    if (draft.allowList.length === 0) {
+      errors.push(issue("get.allowList", "required"));
+    }
+
+    if (!extensions.previewSign.keyHandleHex) {
+      errors.push(issue("get.extensions.previewSign.keyHandleHex", "required"));
+    } else if (!validNonemptyHex(extensions.previewSign.keyHandleHex)) {
+      errors.push(issue("get.extensions.previewSign.keyHandleHex", "invalid-hex"));
+    }
+
+    const toBeSignedLength = binaryDraftByteLength(extensions.previewSign.toBeSigned);
+
+    if (toBeSignedLength === null) {
+      errors.push(issue("get.extensions.previewSign.toBeSigned", "invalid-hex"));
+    } else if (toBeSignedLength === 0) {
+      errors.push(issue("get.extensions.previewSign.toBeSigned", "required"));
+    } else if (
+      extensions.previewSign.algorithm === Algorithm.AlgorithmESP256SplitARKGPlaceholder &&
+      toBeSignedLength !== 32
+    ) {
+      errors.push(issue("get.extensions.previewSign.toBeSigned", "invalid-length"));
+    }
+
+    if (
+      extensions.previewSign.additionalArgumentsHex &&
+      !validNonemptyHex(extensions.previewSign.additionalArgumentsHex)
+    ) {
+      errors.push(issue("get.extensions.previewSign.additionalArgumentsHex", "invalid-hex"));
+    }
   }
 
   if (!extensions.prf.included) return;
@@ -674,6 +727,15 @@ function buildMakeCredentialExtensions(draft: MakeCredentialDraft) {
           payment: new AuthenticationExtensionsPaymentInputs({ payment: true }),
         }
       : {}),
+    previewSign: source.previewSign.included
+      ? new AuthenticationExtensionsPreviewSignInputs({
+          generateKey: new PreviewSignGenerateKeyInputs({
+            algorithms: source.previewSign.algorithms.map((algorithm) =>
+              parseAlgorithm(algorithm)!,
+            ),
+          }),
+        })
+      : undefined,
   });
 }
 
@@ -685,6 +747,7 @@ function buildGetAssertionExtensions(draft: GetAssertionDraft) {
     !source.hmacSecret.included &&
     !source.largeBlob.included &&
     !source.prf.included &&
+    !source.previewSign.included &&
     !source.payment.included
   ) {
     return undefined;
@@ -737,6 +800,24 @@ function buildGetAssertionExtensions(draft: GetAssertionDraft) {
           payment: new AuthenticationExtensionsPaymentInputs({ payment: true }),
         }
       : {}),
+    previewSign: source.previewSign.included
+      ? new AuthenticationExtensionsPreviewSignInputs({
+          signByCredential: Object.fromEntries(
+            draft.allowList.map((descriptor) => [
+              hexToBase64URL(descriptor.credentialIDHex),
+              new PreviewSignSignInputs({
+                keyHandle: hexToBase64(source.previewSign.keyHandleHex),
+                tbs: binaryDraftToBase64(source.previewSign.toBeSigned),
+                ...(source.previewSign.additionalArgumentsHex
+                  ? {
+                      additionalArgs: hexToBase64(source.previewSign.additionalArgumentsHex),
+                    }
+                  : {}),
+              }),
+            ]),
+          ),
+        })
+      : undefined,
   });
 }
 

@@ -204,6 +204,7 @@ describe("WebAuthn Lab screen", () => {
     expect(within(make).queryByText("hmacCreateSecret")).toBeNull();
     expect(within(make).getByRole("switch", { name: "Include largeBlob" })).toBeEnabled();
     expect(within(make).getByRole("switch", { name: "Include payment" })).toBeEnabled();
+    expect(within(make).getByRole("switch", { name: "Include previewSign" })).toBeEnabled();
 
     await user.click(screen.getByRole("tab", { name: "GetAssertion" }));
 
@@ -227,6 +228,7 @@ describe("WebAuthn Lab screen", () => {
     expect(within(assertion).getByRole("switch", { name: "Include hmac-secret" })).toBeEnabled();
     expect(within(assertion).getByRole("switch", { name: "Include largeBlob" })).toBeEnabled();
     expect(within(assertion).getByRole("switch", { name: "Include payment" })).toBeEnabled();
+    expect(within(assertion).getByRole("switch", { name: "Include previewSign" })).toBeEnabled();
 
     await user.click(includePRF);
 

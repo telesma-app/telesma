@@ -210,6 +210,7 @@
 <style>
   @layer blocks {
     :global(.lab-client-data) {
+      container: lab-client-data / inline-size;
       min-width: 0;
     }
 
@@ -247,13 +248,13 @@
       min-width: 0;
     }
 
-    @container workspace (max-width: 84rem) {
+    @container lab-client-data (max-width: 84rem) {
       :global(.lab-client-data-grid) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
 
-    @container workspace (max-width: 42rem) {
+    @container lab-client-data (max-width: 42rem) {
       :global(.lab-client-data-grid) {
         grid-template-columns: minmax(0, 1fr);
       }

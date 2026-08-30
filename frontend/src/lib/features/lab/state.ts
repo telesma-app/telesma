@@ -1,5 +1,6 @@
 import { writable } from "svelte/store";
 
+import { Algorithm } from "../../../../bindings/github.com/telesma-app/ctap/cose";
 import {
   CredentialProtectionPolicy,
   LargeBlobSupport,
@@ -95,6 +96,10 @@ export type MakeCredentialExtensionsDraft = {
     useEval: boolean;
     eval: LabPRFValuesDraft;
   };
+  previewSign: {
+    included: boolean;
+    algorithms: string[];
+  };
   payment: { included: boolean };
 };
 
@@ -111,6 +116,14 @@ export type GetAssertionExtensionsDraft = {
     useGlobalEval: boolean;
     eval: LabPRFValuesDraft;
     evalByCredential: LabPRFCredentialEvaluationDraft[];
+  };
+  previewSign: {
+    included: boolean;
+    algorithm?: Algorithm;
+    keyHandleHex: string;
+    toBeSigned: LabBinaryDraft;
+    additionalArgumentsHex: string;
+    verificationKeyCOSEHex: string;
   };
   payment: { included: boolean };
 };
@@ -182,6 +195,14 @@ export type LabPendingHandoff = {
   credentialIDHex: string;
   publicKeyCOSEHex: string;
   previousSignCount: number;
+  previewSign?: {
+    algorithm: Algorithm;
+    keyHandleHex: string;
+    arkgP256?: {
+      additionalArgumentsHex: string;
+      verificationKeyCOSEHex: string;
+    };
+  };
 };
 
 export type LabState = {
@@ -224,6 +245,10 @@ function makeExtensionDefaults(randomSource?: LabRandomSource): MakeCredentialEx
     minPINLength: { included: false, value: true },
     pinComplexityPolicy: { included: false, value: true },
     prf: { included: false, useEval: false, eval: prfValues("registration-prf") },
+    previewSign: {
+      included: false,
+      algorithms: [String(Algorithm.AlgorithmESP256SplitARKGPlaceholder)],
+    },
     payment: { included: false },
   };
 }
@@ -247,6 +272,16 @@ function getExtensionDefaults(randomSource?: LabRandomSource): GetAssertionExten
       useGlobalEval: false,
       eval: prfValues("authentication-prf"),
       evalByCredential: [],
+    },
+    previewSign: {
+      included: false,
+      keyHandleHex: "",
+      toBeSigned: {
+        mode: "hex",
+        value: "2064e899b1e7bae82340c5214bed6b9009efcc9f9b3999dbe66f67349c9b88ad",
+      },
+      additionalArgumentsHex: "",
+      verificationKeyCOSEHex: "",
     },
     payment: { included: false },
   };

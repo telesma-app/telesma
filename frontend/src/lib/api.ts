@@ -14,6 +14,7 @@ import type { LogJournalBatch } from "../../bindings/github.com/telesma-app/kit/
 import type {
   GetAssertionVerification,
   MakeCredentialVerification,
+  PreviewSignARKGP256Derivation,
 } from "../../bindings/github.com/telesma-app/kit/model/webauthn";
 import type { AttestationTrustAssessment } from "../../bindings/github.com/telesma-app/mds/model";
 import {
@@ -60,6 +61,7 @@ import {
   type PINEnvelope,
   type PINChangeRequest,
   type PINSetRequest,
+  type DerivePreviewSignARKGP256Request,
   type ResetFactoryEnvelope,
   type ResetFactoryRequest,
   type ReadLogsRequest,
@@ -266,6 +268,14 @@ export const api = {
   verifyGetAssertion(request: GetAssertionVerificationRequest): Promise<GetAssertionVerification> {
     return runtimeCall("ctapkit.verification.getAssertion", () =>
       service.VerifyGetAssertion(request),
+    );
+  },
+
+  derivePreviewSignARKGP256(
+    request: DerivePreviewSignARKGP256Request,
+  ): Promise<PreviewSignARKGP256Derivation> {
+    return runtimeCall("ctapkit.previewSign.deriveARKGP256", () =>
+      service.DerivePreviewSignARKGP256(request),
     );
   },
 

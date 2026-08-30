@@ -158,6 +158,7 @@ export enum FactID {
     FactIDExtensionHMACSecret = "extension_hmac_secret",
     FactIDExtensionHMACSecretMC = "extension_hmac_secret_mc",
     FactIDExtensionThirdPartyPayment = "extension_third_party_payment",
+    FactIDExtensionPreviewSign = "extension_preview_sign",
     FactIDEffectiveMaxMessageSize = "effective_max_message_size",
     FactIDMaxCredentialCountInList = "max_credential_count_in_list",
     FactIDMaxCredentialIDLength = "max_credential_id_length",

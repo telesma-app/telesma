@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { tick } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { Algorithm } from "../../../../bindings/github.com/telesma-app/ctap/cose";
 import {
   PublicKeyCredentialDescriptor,
   PublicKeyCredentialType,
@@ -23,13 +24,16 @@ import {
   GetAssertionInput,
   GetAssertionPRFOutput,
   GetAssertionPreview,
+  GetAssertionPreviewSignOutput,
   GetAssertionResult as GetAssertionResultDTO,
   MakeCredentialClientExtensionResults,
   MakeCredentialExtensionResults,
   MakeCredentialInput,
   MakeCredentialPRFOutput,
   MakeCredentialPreview,
+  MakeCredentialPreviewSignOutput,
   MakeCredentialResult as MakeCredentialResultDTO,
+  PreviewSignGeneratedKey,
 } from "../../../../bindings/github.com/telesma-app/kit/model/webauthn";
 
 import GetAssertionResult from "$lib/components/lab/GetAssertionResult.svelte";
@@ -237,6 +241,73 @@ describe("WebAuthn Lab results", () => {
 
     expect(screen.getByText("credBlob")).toBeInTheDocument();
     expect(screen.queryByText("getCredBlob")).not.toBeInTheDocument();
+  });
+
+  it("renders and copies the generated previewSign key material", async () => {
+    const user = userEvent.setup();
+    const result = new MakeCredentialResultDTO({
+      attachmentId: "token-1",
+      rpID: "example.com",
+      fmt: AttestationStatementFormatIdentifier.AttestationStatementFormatIdentifierPacked,
+      credentialIDHex: "0011",
+      publicKeyCOSEHex: "aabb",
+      authenticatorDataHex: "ccdd",
+      attestationObjectCBORHex: "eeff",
+      extensionResults: new MakeCredentialExtensionResults({
+        client: new MakeCredentialClientExtensionResults({
+          previewSign: new MakeCredentialPreviewSignOutput({
+            generatedKey: new PreviewSignGeneratedKey({
+              keyHandleHex: "0102",
+              publicKeyCOSEHex: "a103",
+              algorithm: Algorithm.AlgorithmESP256SplitARKGPlaceholder,
+              attestationObjectCBORHex: "a204",
+            }),
+          }),
+        }),
+      }),
+    });
+
+    renderMakeResult(result);
+
+    expect(screen.getByText("previewSign · algorithm")).toBeInTheDocument();
+    expect(
+      screen.getByText(String(Algorithm.AlgorithmESP256SplitARKGPlaceholder)),
+    ).toBeInTheDocument();
+    expect(screen.getByText("0102")).toBeInTheDocument();
+    expect(screen.getByText("a103")).toBeInTheDocument();
+    expect(screen.getByText("a204")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Copy previewSign key handle" }));
+    expect(clipboardSetText).toHaveBeenLastCalledWith("0102");
+  });
+
+  it("renders the previewSign assertion signature as a regular inspectable output", () => {
+    const result = new GetAssertionResultDTO({
+      attachmentId: "token-1",
+      rpID: "example.com",
+      assertions: [
+        new Assertion({
+          index: 0,
+          credential: new PublicKeyCredentialDescriptor({
+            type: PublicKeyCredentialType.PublicKeyCredentialTypePublicKey,
+            id: "AA==",
+          }),
+          authenticatorDataHex: "cafe",
+          signatureHex: "aa",
+          extensionResults: new GetAssertionExtensionResults({
+            client: new GetAssertionClientExtensionResults({
+              previewSign: new GetAssertionPreviewSignOutput({ signatureHex: "deadbeef" }),
+            }),
+          }),
+        }),
+      ],
+    });
+
+    renderGetResult(result);
+
+    expect(screen.getByText("previewSign · signature")).toBeInTheDocument();
+    expect(screen.getByText("deadbeef")).toBeInTheDocument();
+    expect(screen.queryByText("prf · results")).not.toBeInTheDocument();
   });
 
   it("shows exact client data and copies only the selected inline technical value", async () => {

@@ -6,6 +6,7 @@
   import * as Alert from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
   import * as Field from "$lib/components/ui/field";
+  import { Input } from "$lib/components/ui/input";
   import { Switch } from "$lib/components/ui/switch";
   import * as ToggleGroup from "$lib/components/ui/toggle-group";
   import { inspectResult } from "$lib/ctapkit-results";
@@ -279,6 +280,71 @@
             />
           </section>
         {/each}
+      </Field.Field>
+    </LabExtensionItem>
+
+    <LabExtensionItem
+      value="previewSign"
+      title="previewSign"
+      description={m.lab_extension_preview_sign_get_description()}
+      included={value.previewSign.included}
+      {disabled}
+      status={status(ExtensionIdentifier.ExtensionIdentifierPreviewSign)}
+      onInclude={(included) => include("previewSign", included, value.previewSign)}
+    >
+      <Field.Field
+        data-disabled={disabled}
+        data-invalid={hasError("get.extensions.previewSign.keyHandleHex")}
+      >
+        <Field.Label for="lab-ext-get-preview-sign-key-handle">
+          {m.lab_preview_sign_key_handle()}
+        </Field.Label>
+        <Input
+          id="lab-ext-get-preview-sign-key-handle"
+          value={value.previewSign.keyHandleHex}
+          spellcheck="false"
+          {disabled}
+          aria-invalid={hasError("get.extensions.previewSign.keyHandleHex")}
+          oninput={(event) =>
+            update("previewSign", {
+              ...value.previewSign,
+              keyHandleHex: event.currentTarget.value,
+            })}
+        />
+        <Field.Description>{m.lab_preview_sign_key_handle_description()}</Field.Description>
+      </Field.Field>
+
+      <LabBinaryEditor
+        id="lab-ext-get-preview-sign-tbs"
+        label={m.lab_preview_sign_to_be_signed()}
+        draft={value.previewSign.toBeSigned}
+        {disabled}
+        invalid={hasError("get.extensions.previewSign.toBeSigned")}
+        onChange={(toBeSigned) => update("previewSign", { ...value.previewSign, toBeSigned })}
+      />
+
+      <Field.Field
+        data-disabled={disabled}
+        data-invalid={hasError("get.extensions.previewSign.additionalArgumentsHex")}
+      >
+        <Field.Label for="lab-ext-get-preview-sign-additional-arguments">
+          {m.lab_preview_sign_additional_arguments()}
+        </Field.Label>
+        <Input
+          id="lab-ext-get-preview-sign-additional-arguments"
+          value={value.previewSign.additionalArgumentsHex}
+          spellcheck="false"
+          {disabled}
+          aria-invalid={hasError("get.extensions.previewSign.additionalArgumentsHex")}
+          oninput={(event) =>
+            update("previewSign", {
+              ...value.previewSign,
+              additionalArgumentsHex: event.currentTarget.value,
+            })}
+        />
+        <Field.Description>
+          {m.lab_preview_sign_additional_arguments_description()}
+        </Field.Description>
       </Field.Field>
     </LabExtensionItem>
   </section>

@@ -1,6 +1,7 @@
 import { get } from "svelte/store";
 import { toast } from "svelte-sonner";
 
+import { Algorithm } from "../../bindings/github.com/telesma-app/ctap/cose";
 import {
   GetAssertionVerificationRequest,
   GetAssertionRequest,
@@ -8,6 +9,7 @@ import {
   MakeCredentialRequest,
   MakeCredentialVerificationRequest,
   MDSLookupRequest,
+  DerivePreviewSignARKGP256Request,
 } from "../../bindings/telesma/service";
 import {
   CredentialVerificationMaterial,
@@ -28,6 +30,7 @@ import {
 import {
   labState,
   type GetAssertionDraft,
+  type LabPendingHandoff,
   type LabState,
   type MakeCredentialDraft,
 } from "$lib/features/lab/state.js";
@@ -43,7 +46,7 @@ import {
   validateGetAssertionDraft,
   validateMakeCredentialDraft,
 } from "$lib/lab-input.js";
-import { runtimeFailureFrom } from "$lib/failure.js";
+import { failureMessage, runtimeFailureFrom } from "$lib/failure.js";
 import { runConfirmedExecution, runConfirmedPreview } from "$lib/confirmed-operation.js";
 import { setStatusOutcome } from "$lib/workbench-state.js";
 
@@ -535,14 +538,9 @@ export function updateLabVerificationMaterial(material: CredentialVerificationMa
   return true;
 }
 
-function completeHandoff(
-  rpID: string,
-  credentialIDHex: string,
-  publicKeyCOSEHex: string,
-  previousSignCount: number,
-  replace: boolean,
-) {
+function completeHandoff(handoff: LabPendingHandoff, replace: boolean) {
   const current = get(labState);
+  const { rpID, credentialIDHex, publicKeyCOSEHex, previousSignCount, previewSign } = handoff;
   const duplicate = current.getDraft.allowList.some(
     (entry) => entry.credentialIDHex.trim().toLowerCase() === credentialIDHex.toLowerCase(),
   );
@@ -565,7 +563,21 @@ function completeHandoff(
         ),
         verification,
       ];
-  const getDraft = { ...current.getDraft, rpID, allowList, verificationMaterial };
+  const extensions =
+    previewSign === undefined
+      ? current.getDraft.extensions
+      : {
+          ...current.getDraft.extensions,
+          previewSign: {
+            ...current.getDraft.extensions.previewSign,
+            included: true,
+            algorithm: previewSign.algorithm,
+            keyHandleHex: previewSign.keyHandleHex,
+            additionalArgumentsHex: previewSign.arkgP256?.additionalArgumentsHex ?? "",
+            verificationKeyCOSEHex: previewSign.arkgP256?.verificationKeyCOSEHex ?? "",
+          },
+        };
+  const getDraft = { ...current.getDraft, rpID, allowList, extensions, verificationMaterial };
 
   labState.set({
     ...current,
@@ -588,37 +600,67 @@ function completeHandoff(
   return true;
 }
 
-/** Starts handoff. `false` means a confirmation dialog is now represented in state. */
-export function handoffLabCredential() {
+/** Starts handoff. Returns false when confirmation is needed or ARKG derivation fails. */
+export async function handoffLabCredential(): Promise<boolean> {
   const current = get(labState);
 
   if (current.makeStep.phase !== "success") return false;
 
   const result = current.makeStep.value;
+  const generatedKey = result.extensionResults?.client?.previewSign?.generatedKey;
+  let handoffPreviewSign: LabPendingHandoff["previewSign"];
+
+  if (generatedKey) {
+    handoffPreviewSign = {
+      algorithm: generatedKey.algorithm,
+      keyHandleHex: generatedKey.keyHandleHex,
+    };
+
+    if (generatedKey.algorithm === Algorithm.AlgorithmESP256SplitARKGPlaceholder) {
+      try {
+        const arkgP256 = await api.derivePreviewSignARKGP256(
+          new DerivePreviewSignARKGP256Request({
+            generatedKey,
+            context: result.rpID,
+          }),
+        );
+        handoffPreviewSign.arkgP256 = arkgP256;
+      } catch (cause) {
+        const error = runtimeFailureFrom(cause);
+        const outcome = {
+          tone: "error" as const,
+          title: m.lab_handoff_failed(),
+          message: failureMessage(error),
+        };
+
+        setStatusOutcome(outcome);
+        toast.error(outcome.title, { description: outcome.message });
+
+        return false;
+      }
+    }
+  }
+
+  const handoff: LabPendingHandoff = {
+    rpID: result.rpID,
+    credentialIDHex: result.credentialIDHex,
+    publicKeyCOSEHex: result.publicKeyCOSEHex,
+    previousSignCount: result.signCount,
+    ...(handoffPreviewSign === undefined ? {} : { previewSign: handoffPreviewSign }),
+  };
   const differentRP = Boolean(current.getDraft.rpID && current.getDraft.rpID !== result.rpID);
   const fixedResult = current.getStep.phase === "success";
 
   if (differentRP || fixedResult) {
     labState.set({
       ...current,
-      pendingHandoff: {
-        rpID: result.rpID,
-        credentialIDHex: result.credentialIDHex,
-        publicKeyCOSEHex: result.publicKeyCOSEHex,
-        previousSignCount: result.signCount,
-      },
+      pendingHandoff: handoff,
     });
 
     return false;
   }
 
-  return completeHandoff(
-    result.rpID,
-    result.credentialIDHex,
-    result.publicKeyCOSEHex,
-    result.signCount,
-    false,
-  );
+  return completeHandoff(handoff, false);
 }
 
 export function confirmLabHandoff() {
@@ -626,13 +668,7 @@ export function confirmLabHandoff() {
 
   if (!pending) return false;
 
-  return completeHandoff(
-    pending.rpID,
-    pending.credentialIDHex,
-    pending.publicKeyCOSEHex,
-    pending.previousSignCount,
-    true,
-  );
+  return completeHandoff(pending, true);
 }
 
 export function cancelLabHandoff() {

@@ -33,6 +33,14 @@
 
     if (field.includes("algorithms")) return m.lab_cose_algorithms();
 
+    if (field.endsWith("keyHandleHex")) return m.lab_preview_sign_key_handle();
+
+    if (field.endsWith("toBeSigned")) return m.lab_preview_sign_to_be_signed();
+
+    if (field.endsWith("additionalArgumentsHex")) {
+      return m.lab_preview_sign_additional_arguments();
+    }
+
     if (field.includes("attestationFormatsPreference"))
       return m.lab_attestation_formats_preference();
 

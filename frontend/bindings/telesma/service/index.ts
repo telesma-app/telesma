@@ -25,6 +25,7 @@ export {
     CredentialUpdateEnvelope,
     CredentialUpdateRequest,
     CredentialsEnvelope,
+    DerivePreviewSignARKGP256Request,
     DiscoveryChangedEnvelope,
     EnableEnterpriseAttestationRequest,
     EnableLongTouchForResetRequest,

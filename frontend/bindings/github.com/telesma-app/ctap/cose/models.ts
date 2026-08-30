@@ -98,4 +98,14 @@ export enum Algorithm {
      * AlgorithmECDHESHKDF256 is ECDH ES with HKDF-SHA-256.
      */
     AlgorithmECDHESHKDF256 = -25,
+
+    /**
+     * AlgorithmESP256SplitARKGPlaceholder is ESP256-split using a private key derived by ARKG-P256.
+     */
+    AlgorithmESP256SplitARKGPlaceholder = -65539,
+
+    /**
+     * AlgorithmARKGP256Placeholder identifies the ARKG-P256 instance.
+     */
+    AlgorithmARKGP256Placeholder = -65700,
 };

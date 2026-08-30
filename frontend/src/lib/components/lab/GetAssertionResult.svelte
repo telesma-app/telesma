@@ -52,7 +52,9 @@
 
   let authenticatorExtensions = $derived(selectedAssertion?.extensionResults?.authenticator);
 
-  let hasWebAuthnOutputs = $derived(Boolean(clientExtensions?.prf || clientExtensions?.largeBlob));
+  let hasWebAuthnOutputs = $derived(
+    Boolean(clientExtensions?.prf || clientExtensions?.largeBlob || clientExtensions?.previewSign),
+  );
 
   let hasCTAPOutputs = $derived(
     Boolean(
@@ -70,7 +72,7 @@
     const clientDataJSON = base64ToUTF8(preview.input.clientDataJSON);
     const resultJSON = sanitizedJson(result) ?? "null";
 
-    return [
+    const details: LabTechnicalDataItem[] = [
       {
         id: "client-data-json",
         label: m.lab_client_data(),
@@ -95,15 +97,29 @@
         byteCount: hexByteCount(selectedAssertion.authenticatorDataHex),
         source: selectedAssertion.authenticatorDataHex,
       },
-      {
-        id: "result",
-        label: m.lab_result(),
-        syntax: "json",
-        type: "JSON",
-        byteCount: utf8ByteCount(resultJSON),
-        source: resultJSON,
-      },
     ];
+
+    if (clientExtensions?.previewSign) {
+      details.push({
+        id: "preview-sign-signature",
+        label: m.lab_preview_sign_signature(),
+        syntax: "hex",
+        type: "signature",
+        byteCount: hexByteCount(clientExtensions.previewSign.signatureHex),
+        source: clientExtensions.previewSign.signatureHex,
+      });
+    }
+
+    details.push({
+      id: "result",
+      label: m.lab_result(),
+      syntax: "json",
+      type: "JSON",
+      byteCount: utf8ByteCount(resultJSON),
+      source: resultJSON,
+    });
+
+    return details;
   });
 
   function booleanLabel(value: boolean) {
@@ -216,31 +232,33 @@
             <h5 id="lab-get-webauthn-outputs-title">{m.lab_webauthn_extension_outputs()}</h5>
 
             <dl class="lab-extension-result-list">
-              {#if clientExtensions?.prf?.results}
-                <div>
-                  <dt>prf · first</dt>
-                  <dd>
-                    {#key clientExtensions.prf.results.first}<LabSecretValue
-                        valueHex={base64ToHex(clientExtensions.prf.results.first)}
-                      />{/key}
-                  </dd>
-                </div>
-
-                {#if clientExtensions.prf.results.second !== undefined && clientExtensions.prf.results.second !== null}
+              {#if clientExtensions?.prf}
+                {#if clientExtensions.prf.results}
                   <div>
-                    <dt>prf · second</dt>
+                    <dt>prf · first</dt>
                     <dd>
-                      {#key clientExtensions.prf.results.second}<LabSecretValue
-                          valueHex={base64ToHex(clientExtensions.prf.results.second)}
+                      {#key clientExtensions.prf.results.first}<LabSecretValue
+                          valueHex={base64ToHex(clientExtensions.prf.results.first)}
                         />{/key}
                     </dd>
                   </div>
+
+                  {#if clientExtensions.prf.results.second !== undefined && clientExtensions.prf.results.second !== null}
+                    <div>
+                      <dt>prf · second</dt>
+                      <dd>
+                        {#key clientExtensions.prf.results.second}<LabSecretValue
+                            valueHex={base64ToHex(clientExtensions.prf.results.second)}
+                          />{/key}
+                      </dd>
+                    </div>
+                  {/if}
+                {:else}
+                  <div>
+                    <dt>prf · results</dt>
+                    <dd>{m.lab_not_reported()}</dd>
+                  </div>
                 {/if}
-              {:else}
-                <div>
-                  <dt>prf · results</dt>
-                  <dd>{m.lab_not_reported()}</dd>
-                </div>
               {/if}
 
               {#if clientExtensions?.largeBlob}
@@ -259,6 +277,18 @@
                     <dd>{booleanLabel(clientExtensions.largeBlob.written)}</dd>
                   </div>
                 {/if}
+              {/if}
+
+              {#if clientExtensions?.previewSign}
+                <div class="lab-result-wide">
+                  <dt>previewSign · signature</dt>
+                  <dd>
+                    <LabHexValue
+                      label={m.lab_preview_sign_signature()}
+                      value={clientExtensions.previewSign.signatureHex}
+                    />
+                  </dd>
+                </div>
               {/if}
             </dl>
           </section>

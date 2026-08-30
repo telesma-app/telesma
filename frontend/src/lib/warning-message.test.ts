@@ -61,5 +61,17 @@ describe("warningMessage", () => {
     ).toBe(
       "Аутентификатор не объявил prf; отправка всё равно разрешена, а ответ устройства остаётся определяющим.",
     );
+
+    expect(
+      warningMessage(
+        new Warning({
+          severity: Severity.SeverityWarning,
+          code: "webauthn.extension.preview_sign.not_advertised",
+          message: "backend fallback",
+        }),
+      ),
+    ).toBe(
+      "Аутентификатор не объявил previewSign; отправка всё равно разрешена, а ответ устройства остаётся определяющим.",
+    );
   });
 });
