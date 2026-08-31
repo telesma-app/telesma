@@ -6,9 +6,9 @@ require (
 	github.com/ProtonMail/go-crypto v1.4.1
 	github.com/fxamacker/cbor/v2 v2.9.3
 	github.com/pelletier/go-toml/v2 v2.4.3
-	github.com/telesma-app/ctap v0.49.2
-	github.com/telesma-app/kit v0.19.1
-	github.com/telesma-app/mds v0.5.2
+	github.com/telesma-app/ctap v0.49.3
+	github.com/telesma-app/kit v0.20.0
+	github.com/telesma-app/mds v0.5.3
 	github.com/wailsapp/wails/v3 v3.0.0-beta.9
 	golang.org/x/net v0.58.0
 )
@@ -30,9 +30,9 @@ require (
 	github.com/telesma-app/hid v0.12.1 // indirect
 	github.com/telesma-app/iso7816 v0.2.0 // indirect
 	github.com/telesma-app/pcsc v0.9.0 // indirect
-	github.com/telesma-app/token2 v0.11.1 // indirect
+	github.com/telesma-app/token2 v0.11.2 // indirect
 	github.com/telesma-app/windows-proxy v0.5.0 // indirect
-	github.com/telesma-app/yubico v0.5.1 // indirect
+	github.com/telesma-app/yubico v0.5.2 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	golang.org/x/crypto v0.55.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
