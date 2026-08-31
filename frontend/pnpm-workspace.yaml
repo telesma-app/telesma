@@ -3,3 +3,6 @@ allowBuilds:
   esbuild: true
 minimumReleaseAgeExclude:
   - "@wailsio/runtime@3.0.0-beta.5"
+overrides:
+  postcss: 8.5.26
+  undici: 7.29.0
