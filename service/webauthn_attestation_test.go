@@ -3,7 +3,6 @@ package service
 import (
 	"encoding/hex"
 	"testing"
-
 	"uuid"
 
 	"github.com/fxamacker/cbor/v2"

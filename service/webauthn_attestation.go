@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"time"
-
 	"uuid"
 
 	ctapattestation "github.com/telesma-app/ctap/attestation"

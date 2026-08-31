@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-
 	"uuid"
 
 	ctapkit "github.com/telesma-app/kit"
