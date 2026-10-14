@@ -386,7 +386,7 @@ export class MetadataStatement {
     "providerLogoDark"?: string | null;
     "extensionDescriptor"?: ExtensionDescriptor[];
     "multiDeviceCredentialSupport": string | null;
-    "authenticatorGetInfo"?: protocol$0.AuthenticatorGetInfoResponse;
+    "authenticatorGetInfo": protocol$0.AuthenticatorGetInfoResponse;
     "cxConfigURL": string | null;
 
     /** Creates a new MetadataStatement instance. */
@@ -429,6 +429,9 @@ export class MetadataStatement {
         }
         if (!("multiDeviceCredentialSupport" in $$source)) {
             this["multiDeviceCredentialSupport"] = null;
+        }
+        if (!("authenticatorGetInfo" in $$source)) {
+            this["authenticatorGetInfo"] = (new protocol$0.AuthenticatorGetInfoResponse());
         }
         if (!("cxConfigURL" in $$source)) {
             this["cxConfigURL"] = null;
@@ -521,7 +524,7 @@ export class PayloadEntry {
     "aaid"?: string | null;
     "aaguid"?: uuid$0.UUID;
     "attestationCertificateKeyIdentifiers"?: string[];
-    "metadataStatement"?: MetadataStatement;
+    "metadataStatement": MetadataStatement;
     "biometricStatusReports"?: BiometricStatusReport[];
     "statusReports"?: StatusReport[];
     "timeOfLastStatusChange"?: string;
@@ -530,6 +533,9 @@ export class PayloadEntry {
 
     /** Creates a new PayloadEntry instance. */
     constructor($$source: Partial<PayloadEntry> = {}) {
+        if (!("metadataStatement" in $$source)) {
+            this["metadataStatement"] = (new MetadataStatement());
+        }
 
         Object.assign(this, $$source);
     }

@@ -1,3 +1,6 @@
 allowBuilds:
   "@tailwindcss/oxide": true
   esbuild: true
+overrides:
+  postcss: 8.5.26
+  undici: 7.29.0
