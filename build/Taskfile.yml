@@ -117,13 +117,6 @@ tasks:
     cmds:
       - pnpm run dev -- --port {{.VITE_PORT}} --strictPort
 
-  dev:wait:
-    summary: Waits for the frontend development server
-    vars:
-      TIMEOUT: 60
-    cmds:
-      - wails3 tool waitport --timeout {{.TIMEOUT}}
-
   update:build-assets:
     summary: Updates the build assets
     dir: build

@@ -9,6 +9,5 @@ use (
 	../mds
 	../pcsc
 	../token2
-	../wails/v3
 	../yubico
 )

@@ -25,7 +25,15 @@ Available operations depend on the capabilities and state of the connected authe
 - Native Wails build dependencies for your platform
 - A locally accessible FIDO authenticator and a supported transport
 
-Install the Wails CLI and check the platform dependencies with the instructions in the [Wails 3 documentation](https://v3.wails.io/). This repository currently uses Wails `v3.0.0-beta.5`.
+This repository pins Wails and `@wailsio/runtime` to `v3.0.0-beta.28`. Install the matching CLI:
+
+```sh
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.28
+```
+
+Check the platform dependencies with the instructions in the [Wails 3 documentation](https://v3.wails.io/).
+
+The macOS build tasks enable `private_mac_apis` to preserve the Liquid Glass backdrop and WebView transparency. Direct Go builds on macOS also need this tag; see [Wails' private macOS API guide](https://v3.wails.io/guides/build/private-macos-apis/).
 
 ## Development
 
