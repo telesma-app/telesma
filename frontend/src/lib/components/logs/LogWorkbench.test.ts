@@ -74,6 +74,8 @@ describe("LogWorkbench", () => {
       return this.hasAttribute("data-index") ? 64 : 800;
     });
     vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(1_200);
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(800);
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(1_200);
   });
 
   afterEach(() => {
