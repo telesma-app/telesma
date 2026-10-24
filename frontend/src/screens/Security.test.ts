@@ -1,3 +1,5 @@
+import { DescriptorState } from "../../bindings/github.com/telesma-app/kit/model/report";
+import { USBReport } from "../../bindings/github.com/telesma-app/kit/model/report";
 import { cleanup, render, screen, within } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -15,7 +17,7 @@ import {
   StatusReport,
   UVStatus,
 } from "../../bindings/github.com/telesma-app/kit/model/config";
-import { DeviceReport } from "../../bindings/github.com/telesma-app/kit/model/report";
+import { EndpointReport } from "../../bindings/github.com/telesma-app/kit/model/report";
 import type { ConfigStatusEnvelope } from "../../bindings/telesma/service";
 import { Mode } from "../../bindings/github.com/telesma-app/kit/transport";
 
@@ -31,11 +33,15 @@ import { failureForCode } from "$lib/test-support/failure";
 
 import Security from "./Security.svelte";
 
-const token = new DeviceReport({
+const token = new EndpointReport({
   attachment: {
     id: "token-1",
     transport: Mode.ModeHID,
-    usb: { product: "Test authenticator", vendorId: 1, productId: 2 },
+    usb: new USBReport({
+      product: { state: DescriptorState.DescriptorRead, value: "Test authenticator" },
+      vendorId: { state: DescriptorState.DescriptorRead, value: 1 },
+      productId: { state: DescriptorState.DescriptorRead, value: 2 },
+    }),
   },
 });
 

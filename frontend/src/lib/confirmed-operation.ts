@@ -183,28 +183,6 @@ function failureDetails<TEnvelope extends OperationEnvelope>(
       };
 }
 
-function previewFailure<TEnvelope extends OperationEnvelope>(
-  failure: TypedOperationStageFailure<TEnvelope>,
-): PreviewFailure<TEnvelope> {
-  return {
-    phase: "error",
-    failedPhase: "previewing",
-    ...failureDetails(failure),
-  };
-}
-
-function executionFailure<TRequest, TEnvelope extends OperationEnvelope, TPreview>(
-  execution: ConfirmedOperationExecution<TRequest, TEnvelope, TPreview>,
-  failure: TypedOperationStageFailure<TEnvelope>,
-): ExecutionFailure<TRequest, TEnvelope, TPreview> {
-  return {
-    phase: "error",
-    failedPhase: "executing",
-    ...execution,
-    ...failureDetails(failure),
-  };
-}
-
 export function confirmedOperationExecution<TRequest, TEnvelope, TPreview = unknown>(
   operation:
     | ConfirmedOperationReview<TRequest, TEnvelope, TPreview>
@@ -245,7 +223,8 @@ export async function runConfirmedPreview<TRequest, TEnvelope extends OperationE
     label,
     call: () => call(request),
     extract,
-    onFailure: (failure) => publish(previewFailure(failure)),
+    onFailure: (failure) =>
+      publish({ phase: "error", failedPhase: "previewing", ...failureDetails(failure) }),
     onSuccess: (value, envelope) => {
       if (!shouldReview || shouldReview(value, envelope)) {
         publish({
@@ -299,7 +278,13 @@ export async function runConfirmedExecution<
     label,
     call: () => call(execution.request),
     extract,
-    onFailure: (failure) => publish(executionFailure(execution, failure)),
+    onFailure: (failure) =>
+      publish({
+        phase: "error",
+        failedPhase: "executing",
+        ...execution,
+        ...failureDetails(failure),
+      }),
     onSuccess: (value, envelope) => onSuccess?.(value, envelope, execution),
     completion,
   });

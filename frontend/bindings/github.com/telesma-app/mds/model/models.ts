@@ -306,6 +306,8 @@ export class ExtensionDescriptor {
 
 /**
  * LookupResult is the public result of a verified FIDO Metadata Service AAGUID lookup.
+ * Signed metadata describes an authenticator model; it does not authenticate a device.
+ * Entry is non-nil when Found is true and shares the immutable cached entry.
  */
 export class LookupResult {
     "aaguid": uuid$0.UUID;
@@ -314,7 +316,11 @@ export class LookupResult {
     "blobNumber": number;
     "source": string;
     "cached": boolean;
-    "cachedAt": string;
+
+    /**
+     * CheckedAt is the last successful network retrieval or revalidation.
+     */
+    "checkedAt": string;
 
     /** Creates a new LookupResult instance. */
     constructor($$source: Partial<LookupResult> = {}) {
@@ -333,8 +339,8 @@ export class LookupResult {
         if (!("cached" in $$source)) {
             this["cached"] = false;
         }
-        if (!("cachedAt" in $$source)) {
-            this["cachedAt"] = "0001-01-01T00:00:00.000Z";
+        if (!("checkedAt" in $$source)) {
+            this["checkedAt"] = "0001-01-01T00:00:00.000Z";
         }
 
         Object.assign(this, $$source);

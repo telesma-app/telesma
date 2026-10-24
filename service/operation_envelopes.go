@@ -93,6 +93,7 @@ func runOperation[T any](
 
 	if !service.registerOperation(selected, state) {
 		cancel()
+
 		meta.Error = failure.Snapshot(authenticatorClosedError())
 
 		return meta, nil
@@ -117,7 +118,8 @@ func runOperation[T any](
 
 	result, operationErr := execute(ctx, selected.runtime.client, opts...)
 
-	meta.AuthenticatorClosed = selected.runtime.Closed()
+	meta.AuthenticatorClosed = selected.runtime.lifecycle.Closed()
+
 	meta.Error = failure.Snapshot(operationErr)
 	if meta.AuthenticatorClosed {
 		service.retireSelection(selected)

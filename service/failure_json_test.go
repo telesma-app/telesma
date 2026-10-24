@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/telesma-app/kit/model/report"
 	"testing"
 
 	"github.com/telesma-app/kit/model/failure"
@@ -33,7 +34,6 @@ func TestGetAssertionFailureEnvelopeExactJSON(t *testing.T) {
 	}
 
 	raw, marshalErr := json.Marshal(envelope)
-
 	if marshalErr != nil {
 		t.Fatalf("Marshal: %v", marshalErr)
 	}
@@ -48,8 +48,7 @@ func TestGetAssertionFailureEnvelopeExactJSON(t *testing.T) {
 func TestDirectServiceErrorIsTypedAndMachineReadable(t *testing.T) {
 	service := New()
 
-	err := service.SetSelection(context.Background(), SelectionRequest{AttachmentID: "missing-device"})
-
+	err := service.SetSelection(context.Background(), SelectionRequest{DeviceID: report.DeviceID("missing-device")})
 	if err == nil {
 		t.Fatal("SetSelection error = nil, want failure")
 	}

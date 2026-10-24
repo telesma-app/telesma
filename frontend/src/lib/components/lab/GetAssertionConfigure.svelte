@@ -1,6 +1,6 @@
 <script lang="ts">
   import { VerificationFlow } from "../../../../bindings/github.com/telesma-app/kit";
-  import type { InspectEnvelope } from "../../../../bindings/telesma/service";
+  import type { GetInfoEnvelope } from "../../../../bindings/telesma/service";
 
   import * as Field from "$lib/components/ui/field";
   import * as Card from "$lib/components/ui/card";
@@ -23,7 +23,7 @@
     disabled?: boolean;
     errors: LabValidationIssue[];
     warnings: LabValidationIssue[];
-    inspection: LoadState<InspectEnvelope>;
+    inspection: LoadState<GetInfoEnvelope>;
     onDraftChange: (patch: Partial<GetAssertionDraft>) => void;
     onRegenerateChallenge: () => void;
     onPrimary: () => void;

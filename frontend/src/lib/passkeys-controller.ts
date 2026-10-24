@@ -54,19 +54,12 @@ import {
 } from "$lib/confirmed-operation.js";
 import { completeOperation, runOperation } from "$lib/operation-lifecycle.js";
 
-function passkeysAutoLoadKey() {
-  const selector = get(selectedSelector).trim();
-  const selectionId = get(authenticatorStatus).selectionId || "";
-
-  return selector && selectionId ? `${selector}:${selectionId}` : "";
-}
-
 function shouldAutoLoadPasskeys() {
   const inventory = get(passkeysInventoryState);
 
   return (
     get(activeScreen) === "passkeys" &&
-    Boolean(passkeysAutoLoadKey()) &&
+    Boolean(get(selectedSelector).trim() && get(authenticatorStatus).selectionId) &&
     !inventory.report &&
     inventory.phase !== "loading" &&
     inventory.phase !== "refreshing" &&

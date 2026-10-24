@@ -51,12 +51,28 @@ export async function bootstrapAuthenticatorSession() {
 export async function selectAuthenticatorSession(selector: string) {
   const requestedSelector = selector.trim();
   const device = reportForSelector(get(authenticatorSession).devices, requestedSelector);
-  const attachmentId = device?.attachment.id ?? "";
+  const deviceId = device?.id ?? "";
 
   pendingInteraction.set(null);
 
   try {
-    await api.setSelection({ attachmentId });
+    await api.setSelection({ deviceId });
+  } catch (error) {
+    const runtimeError = runtimeFailureFrom(error);
+
+    setStatusOutcome({
+      tone: "error",
+      title: m.token_selection_issue(),
+      message: failureMessage(runtimeError),
+    });
+  }
+}
+
+export async function selectAuthenticatorEndpoint(attachmentId: string) {
+  pendingInteraction.set(null);
+
+  try {
+    await api.setEndpointSelection({ attachmentId });
   } catch (error) {
     const runtimeError = runtimeFailureFrom(error);
 

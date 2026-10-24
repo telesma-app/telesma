@@ -1,59 +1,42 @@
 <script lang="ts">
   import OverviewCapabilityMatrix from "$lib/components/overview/OverviewCapabilityMatrix.svelte";
   import OverviewHeroCard from "$lib/components/overview/OverviewHeroCard.svelte";
-  import OverviewLoadingCard from "$lib/components/overview/OverviewLoadingCard.svelte";
   import OverviewMDSObservations from "$lib/components/overview/OverviewMDSObservations.svelte";
   import OverviewStandardCapabilities from "$lib/components/overview/OverviewStandardCapabilities.svelte";
   import OverviewStandardHeroCard from "$lib/components/overview/OverviewStandardHeroCard.svelte";
   import OverviewVendorPassport from "$lib/components/overview/OverviewVendorPassport.svelte";
-  import EmptyState from "$lib/components/shared/EmptyState.svelte";
   import JsonDisclosure from "$lib/components/shared/JsonDisclosure.svelte";
+  import * as Alert from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
-  import { toast } from "svelte-sonner";
-  import { selectedDevice, selectedSelector } from "$lib/features/authenticator";
   import {
-    authenticatorInspection,
-    loadOverviewMDS,
-    overviewBioSensor,
-    overviewMDS,
-    reloadOverview,
-  } from "$lib/features/overview";
+    selectedDevice,
+    selectedSelector,
+    selectedEndpointId,
+    selectedDeviceEndpoints,
+  } from "$lib/features/authenticator";
+  import { overviewBioSensor, loadOverview, loadOverviewMetadata } from "$lib/features/overview";
   import { buildOverviewPresentation } from "$lib/overview-presentation";
   import { advancedMode } from "$lib/preferences";
-
   import { m } from "../paraglide/messages.js";
 
   let overview = $derived(
     buildOverviewPresentation({
       selectedSelector: $selectedSelector,
       selectedDevice: $selectedDevice,
-      overviewState: $authenticatorInspection,
+      endpoints: $selectedDeviceEndpoints,
       overviewBioSensorState: $overviewBioSensor,
-      overviewMDSState: $overviewMDS,
     }),
   );
 
   async function refreshMDS() {
-    if (overview.hero.aaguidAvailable) {
-      const refreshed = await loadOverviewMDS(overview.hero.aaguid, true);
-
-      if (refreshed) toast.success(m.mds_refresh_complete());
-    }
+    await loadOverviewMetadata($selectedEndpointId, true);
   }
 </script>
 
-{#if overview.selector && overview.failed}
-  <EmptyState title={m.overview_not_loaded()} message={m.overview_not_loaded_message()}>
-    {#snippet actions()}
-      <Button type="button" onclick={reloadOverview}>
-        {m.reload_overview()}
-      </Button>
-    {/snippet}
-  </EmptyState>
-{:else if overview.selector}
-  <section class="overview-screen flow">
-    {#if overview.hasReport}
-      {#if $advancedMode}
+{#if overview.selector}
+  {#key $selectedEndpointId}
+    <section class="overview-screen flow">
+      {#if $advancedMode || !overview.standard}
         <OverviewHeroCard
           hero={overview.hero}
           signalGroups={overview.signalGroups}
@@ -65,25 +48,44 @@
           <OverviewVendorPassport presentation={overview.vendorPassport} />
         {/if}
 
-        <OverviewCapabilityMatrix
-          groups={overview.overviewGroups}
-          warningCount={overview.warningCount}
-        />
+        {#if overview.infoFailure}
+          <Alert.Root>
+            <Alert.Title>FIDO GetInfo</Alert.Title>
+            <Alert.Description>
+              <p>{overview.infoFailure}</p>
+              <Button variant="outline" disabled={overview.loading} onclick={loadOverview}>
+                {overview.loading ? m.source_loading() : m.reload_overview()}
+              </Button>
+            </Alert.Description>
+          </Alert.Root>
+        {/if}
+
+        {#if overview.info}
+          <OverviewCapabilityMatrix
+            groups={overview.overviewGroups}
+            warningCount={overview.warningCount}
+          />
+        {/if}
+
+        {#if overview.bioFailure}
+          <Alert.Root>
+            <Alert.Title>{m.biometrics()}</Alert.Title>
+            <Alert.Description>{overview.bioFailure}</Alert.Description>
+          </Alert.Root>
+        {/if}
 
         <OverviewMDSObservations observations={overview.mdsObservations} />
 
-        <JsonDisclosure value={overview.report} />
-      {:else if overview.standard}
+        {#if $advancedMode}<JsonDisclosure value={overview.report} />{/if}
+      {:else}
         <OverviewStandardHeroCard hero={overview.hero} presentation={overview.standard} />
 
         <OverviewStandardCapabilities presentation={overview.standard} />
 
         <OverviewMDSObservations observations={overview.mdsObservations} />
       {/if}
-    {:else if overview.loading}
-      <OverviewLoadingCard advanced={$advancedMode} />
-    {/if}
-  </section>
+    </section>
+  {/key}
 {/if}
 
 <style>

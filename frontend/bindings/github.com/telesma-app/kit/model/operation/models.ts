@@ -14,7 +14,8 @@ export enum Kind {
      */
     $zero = "",
 
-    Inspect = "inspect",
+    ReadSources = "sources.read",
+    GetInfo = "getInfo",
     ListCredentials = "credentials.list",
     CredentialStoreState = "credentials.storeState",
     DeleteCredential = "credentials.delete",

@@ -1,5 +1,12 @@
+import {
+  SourceState,
+  YubicoSource,
+  Token2Source,
+  Token2Report,
+} from "../../bindings/github.com/telesma-app/kit/model/report";
+import { DeviceInfo, FirmwareVersion } from "../../bindings/github.com/telesma-app/yubico";
+import { Model } from "../../bindings/github.com/telesma-app/token2";
 import { beforeEach, describe, expect, it } from "vitest";
-
 import { AuthenticatorGetInfoResponse } from "../../bindings/github.com/telesma-app/ctap/protocol";
 import {
   AuthenticatorStatus,
@@ -8,76 +15,55 @@ import {
   PayloadEntry,
   StatusReport,
 } from "../../bindings/github.com/telesma-app/mds/model";
-import {
-  DeviceIdentityReport,
-  DeviceReport,
-  DeviceVendor,
-} from "../../bindings/github.com/telesma-app/kit/model/report";
-import { Mode } from "../../bindings/github.com/telesma-app/kit/transport";
-import { DeviceInfo as Token2DeviceInfo } from "../../bindings/github.com/telesma-app/token2";
-import {
-  DeviceInfo as YubicoDeviceInfo,
-  FirmwareVersion as YubicoFirmwareVersion,
-} from "../../bindings/github.com/telesma-app/yubico";
-
 import { setAppLocale } from "$lib/i18n";
 import { buildOverviewHero } from "$lib/overview-hero";
+import { testHIDDevice } from "../test/device";
 
 describe("buildOverviewHero", () => {
   beforeEach(() => setAppLocale("en"));
-
-  it("shows FIDO and FIPS validation from their separate MDS status reports", () => {
+  it("keeps FIDO and FIPS statements within MDS facts", () => {
     const mds = new LookupResult({
       found: true,
       entry: new PayloadEntry({
         metadataStatement: new MetadataStatement({
           authenticatorGetInfo: new AuthenticatorGetInfoResponse({
-            versions: [],
-            aaguid: "",
-            certifications: {
-              "FIPS-CMVP-3": 2,
-              "FIPS-CMVP-3-PHY": 3,
-            },
+            certifications: { "FIPS-CMVP-3": 2 },
           }),
         }),
         statusReports: [
-          new StatusReport({
-            status: AuthenticatorStatus.AuthenticatorStatusFIDOCertifiedL2,
-            effectiveDate: "2026-01-01",
-          }),
+          new StatusReport({ status: AuthenticatorStatus.AuthenticatorStatusFIDOCertifiedL2 }),
         ],
       }),
     });
-
-    const facts = buildOverviewHero({ mds }).mdsStatusFacts;
-
-    expect(facts).toEqual(
+    expect(buildOverviewHero({ mds }).mdsStatusFacts).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
-          label: "FIDO validation",
-          value: "FIDO_CERTIFIED_L2",
-          tone: "success",
-        }),
-        expect.objectContaining({
-          label: "FIPS validation",
-          value: "FIPS-CMVP-3: L2\nFIPS-CMVP-3-PHY: L3",
-          tone: "success",
-        }),
+        expect.objectContaining({ label: "FIDO validation", value: "FIDO_CERTIFIED_L2" }),
+        expect.objectContaining({ label: "FIPS validation", value: "FIPS-CMVP-3: L2" }),
       ]),
     );
   });
-
-  it("uses vendor identity for the title and serial while retaining the MDS name", () => {
-    const device = new DeviceReport({
-      attachment: {
-        id: "token-1",
-        transport: Mode.ModeHID,
-        usb: { product: "Yubico Security Key", vendorId: 0x1050, productId: 0x0407 },
-      },
-      identity: new DeviceIdentityReport({
-        vendor: DeviceVendor.DeviceVendorYubico,
-        name: "YubiKey 5C Nano",
-        serialNumber: "12345678",
+  it("attributes USB naming and keeps the MDS description separate", () => {
+    const device = testHIDDevice("key", "USB product");
+    const mds = new LookupResult({
+      found: true,
+      entry: new PayloadEntry({
+        metadataStatement: new MetadataStatement({ description: "MDS model family" }),
+      }),
+    });
+    const hero = buildOverviewHero({ device, mds });
+    expect(hero.title).toBe("USB product");
+    expect(hero.subtitle).toBe("USB · HID");
+    expect(hero.mdsName).toBe("MDS model family");
+    expect(hero.mdsDescription).toContain("does not authenticate");
+  });
+  it("keeps the vendor model above MDS and shows serial and firmware in the hero", () => {
+    const device = testHIDDevice("key", "YubiKey FIDO+CCID");
+    device.sources.yubico = new YubicoSource({
+      state: SourceState.SourcePartial,
+      modelName: "YubiKey 5C Nano",
+      data: new DeviceInfo({
+        serialNumber: 1234,
+        firmwareVersion: new FirmwareVersion({ major: 5, minor: 7, build: 4 }),
       }),
     });
     const mds = new LookupResult({
@@ -87,41 +73,35 @@ describe("buildOverviewHero", () => {
       }),
     });
     const hero = buildOverviewHero({ device, mds });
-
     expect(hero.title).toBe("YubiKey 5C Nano");
-    expect(hero.serialNumber).toBe("12345678");
-    expect(hero.subtitle).toBe("YubiKey 5 Series");
+    expect(hero.mdsName).toBe("YubiKey 5 Series");
+    expect(hero.serialNumber).toBe("1234");
+    expect(hero.versionBadge).toBe("Firmware 5.7.4");
   });
 
-  it("shows the Token2 release and Yubico firmware in a separate badge", () => {
-    const token2 = new DeviceReport({
-      vendorMetadata: {
-        token2: new Token2DeviceInfo({
-          release: "R3.3",
-        }),
-      },
+  it("shows Token2 release as a hardware revision independently of firmware", () => {
+    const device = testHIDDevice("key", "FIDO key");
+    device.sources.token2 = new Token2Source({
+      state: SourceState.SourcePartial,
+      data: new Token2Report({
+        model: new Model({ branding: "Token2", formFactor: "Dual PIN+ NFC", release: "R3.2" }),
+      }),
     });
-    const yubico = new DeviceReport({
-      vendorMetadata: {
-        yubico: new YubicoDeviceInfo({
-          firmwareVersion: new YubicoFirmwareVersion({ major: 5, minor: 7, build: 1 }),
-        }),
-      },
-    });
-
-    expect(buildOverviewHero({ device: token2 }).versionBadge).toBe("Release 3.3");
-    expect(buildOverviewHero({ device: yubico }).versionBadge).toBe("Firmware 5.7.1");
+    const hero = buildOverviewHero({ device });
+    expect(hero.title).toBe("Token2 Dual PIN+ NFC");
+    expect(hero.versionBadge).toBe("Hardware release R3.2");
   });
 
-  it("omits the version badge when no vendor version was reported", () => {
-    const token2 = new DeviceReport({
-      vendorMetadata: { token2: new Token2DeviceInfo() },
+  it("retains the MDS entry during refresh and exposes a refresh failure", () => {
+    const mds = new LookupResult({
+      found: true,
+      entry: new PayloadEntry({
+        metadataStatement: new MetadataStatement({ description: "Retained model" }),
+      }),
     });
-    const yubico = new DeviceReport({
-      vendorMetadata: { yubico: new YubicoDeviceInfo() },
-    });
-
-    expect(buildOverviewHero({ device: token2 }).versionBadge).toBe("");
-    expect(buildOverviewHero({ device: yubico }).versionBadge).toBe("");
+    expect(buildOverviewHero({ mds, mdsLoading: true }).mdsName).toBe("Retained model");
+    expect(buildOverviewHero({ mds, mdsError: "HTTP 503" }).mdsRefreshMessage).toContain(
+      "HTTP 503",
+    );
   });
 });

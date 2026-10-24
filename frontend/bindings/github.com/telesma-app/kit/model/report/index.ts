@@ -3,14 +3,29 @@
 
 export {
     AttachmentReport,
-    DeviceIdentityReport,
+    Descriptor,
+    DescriptorState,
+    DeviceIdentity,
     DeviceReport,
-    DeviceVendor,
-    DeviceVendorMetadata,
+    EndpointReport,
+    GetInfoSource,
+    HIDInitSource,
+    MDSSource,
+    Outcome,
     SmartCardReport,
-    USBReport
+    SourceReadError,
+    SourceReading,
+    SourceReason,
+    SourceState,
+    Sources,
+    Token2Report,
+    Token2Source,
+    USBReport,
+    Vendor,
+    YubicoSource
 } from "./models.js";
 
 export type {
-    AttachmentID
+    AttachmentID,
+    DeviceID
 } from "./models.js";

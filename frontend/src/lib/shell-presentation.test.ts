@@ -1,13 +1,14 @@
+import { testTopology, testHIDDevice, testSmartCardDevice } from "../test/device.js";
+import { DeviceReport, YubicoSource } from "../../bindings/github.com/telesma-app/kit/model/report";
+import { SmartCardReport } from "../../bindings/github.com/telesma-app/kit/model/report";
+import { DescriptorState } from "../../bindings/github.com/telesma-app/kit/model/report";
+import { USBReport } from "../../bindings/github.com/telesma-app/kit/model/report";
 import { beforeEach, describe, expect, it } from "vitest";
 import { CreditCard, Nfc, Usb } from "@lucide/svelte";
 
 import { OperationStage } from "../../bindings/github.com/telesma-app/kit/model";
 import { Code } from "../../bindings/github.com/telesma-app/kit/model/failure";
-import {
-  DeviceIdentityReport,
-  DeviceReport,
-  DeviceVendor,
-} from "../../bindings/github.com/telesma-app/kit/model/report";
+import { EndpointReport } from "../../bindings/github.com/telesma-app/kit/model/report";
 import { Mode, SmartCardInterface } from "../../bindings/github.com/telesma-app/kit/transport";
 
 import { setAppLocale } from "$lib/i18n.js";
@@ -16,11 +17,15 @@ import { buildShellStatusPresentation, buildSidebarPresentation } from "$lib/she
 import type { AuthenticatorStatus } from "$lib/authenticator-model.js";
 import type { StatusBarState } from "$lib/features/workbench";
 
-const token = new DeviceReport({
+const token = new EndpointReport({
   attachment: {
     id: "token-1",
     transport: Mode.ModeHID,
-    usb: { product: "Test key", vendorId: 1, productId: 2 },
+    usb: new USBReport({
+      product: { state: DescriptorState.DescriptorRead, value: "Test key" },
+      vendorId: { state: DescriptorState.DescriptorRead, value: 1 },
+      productId: { state: DescriptorState.DescriptorRead, value: 2 },
+    }),
   },
 });
 
@@ -128,7 +133,7 @@ describe("sidebar presentation", () => {
   it("builds the active screen title and discovered token rows", () => {
     const presentation = buildSidebarPresentation({
       activeScreen: "security",
-      devices: [token],
+      ...testTopology([token]),
       selectedSelector: "token-1",
       busy: false,
     });
@@ -145,134 +150,168 @@ describe("sidebar presentation", () => {
     ]);
   });
 
-  it("prefers the Yubico identity resolved after opening", () => {
-    const enriched = new DeviceReport({
+  it("uses the USB product without inventing a Yubico model", () => {
+    const enriched = new EndpointReport({
       ...token,
       attachment: {
         ...token.attachment,
-        usb: {
-          product: "Yubico Security Key",
-          vendorId: 0x1050,
-          productId: 0x0407,
-        },
+        usb: new USBReport({
+          product: { state: DescriptorState.DescriptorRead, value: "Yubico Security Key" },
+          vendorId: { state: DescriptorState.DescriptorRead, value: 0x1050 },
+          productId: { state: DescriptorState.DescriptorRead, value: 0x0407 },
+        }),
       },
-      identity: new DeviceIdentityReport({
-        vendor: DeviceVendor.DeviceVendorYubico,
-        name: "YubiKey 5C NFC",
-        serialNumber: "12345678",
-      }),
     });
 
     const presentation = buildSidebarPresentation({
       activeScreen: "overview",
-      devices: [enriched],
+      ...testTopology([enriched]),
       selectedSelector: "token-1",
       busy: false,
     });
 
     expect(presentation.tokens[0]).toEqual({
       value: "token-1",
-      label: "YubiKey 5C NFC · 12345678",
-      name: "YubiKey 5C NFC",
-      detail: "S/N 12345678",
+      label: "Yubico Security Key",
+      name: "Yubico Security Key",
+      detail: "",
       icon: Usb,
     });
   });
 
-  it("prefers the canonical Token2 identity over attachment labels", () => {
-    const token2 = new DeviceReport({
+  it("uses the USB product without inventing a Token2 model", () => {
+    const token2 = new EndpointReport({
       ...token,
       attachment: {
         ...token.attachment,
-        usb: {
-          product: "TOKEN2 FIDO2 Security Key",
-          vendorId: 0x349e,
-          productId: 1,
-        },
+        usb: new USBReport({
+          product: { state: DescriptorState.DescriptorRead, value: "TOKEN2 FIDO2 Security Key" },
+          vendorId: { state: DescriptorState.DescriptorRead, value: 0x349e },
+          productId: { state: DescriptorState.DescriptorRead, value: 1 },
+        }),
       },
-      identity: new DeviceIdentityReport({
-        vendor: DeviceVendor.DeviceVendorToken2,
-        name: "Token2 Bio3 Dual A+C PIN+",
-        serialNumber: "72103654095303",
-      }),
     });
 
     const presentation = buildSidebarPresentation({
       activeScreen: "overview",
-      devices: [token2],
+      ...testTopology([token2]),
       selectedSelector: "token-1",
       busy: false,
     });
 
     expect(presentation.tokens[0]).toEqual({
       value: "token-1",
-      label: "Token2 Bio3 Dual A+C PIN+ · 72103654095303",
-      name: "Token2 Bio3 Dual A+C PIN+",
-      detail: "S/N 72103654095303",
+      label: "TOKEN2 FIDO2 Security Key",
+      name: "TOKEN2 FIDO2 Security Key",
+      detail: "",
       icon: Usb,
     });
   });
 
   it("keeps a smart-card reader separate from the card identity", () => {
-    const smartCard = new DeviceReport({
+    const smartCard = new EndpointReport({
       ...token,
       attachment: {
         id: "smart-card-1",
         transport: Mode.ModeSmartCard,
-        smartCard: {
+        smartCard: new SmartCardReport({
           reader: "ACS ACR1252 Dual Reader",
           interface: SmartCardInterface.SmartCardInterfaceContact,
-        },
+        }),
       },
     });
 
     const presentation = buildSidebarPresentation({
       activeScreen: "overview",
-      devices: [smartCard],
+      ...testTopology([smartCard]),
       selectedSelector: "smart-card-1",
       busy: false,
     });
 
     expect(presentation.tokens[0]).toEqual({
       value: "smart-card-1",
-      label: "FIDO smart card",
-      name: "FIDO smart card",
+      label: "Smart card",
+      name: "Smart card",
       detail: "ACS ACR1252 Dual Reader · PC/SC",
       icon: CreditCard,
     });
   });
 
-  it("shows a resolved contactless smart-card identity above its reader", () => {
-    const smartCard = new DeviceReport({
+  it("uses a generic card name and keeps the contactless reader separate", () => {
+    const smartCard = new EndpointReport({
       ...token,
       attachment: {
         id: "smart-card-1",
         transport: Mode.ModeSmartCard,
-        smartCard: {
+        smartCard: new SmartCardReport({
           reader: "Token2 Smart Reader",
           interface: SmartCardInterface.SmartCardInterfaceContactless,
-        },
+        }),
       },
-      identity: new DeviceIdentityReport({
-        vendor: DeviceVendor.DeviceVendorToken2,
-        name: "Token2 FIDO Card",
-        serialNumber: "86202012345678",
-      }),
     });
 
     const presentation = buildSidebarPresentation({
       activeScreen: "overview",
-      devices: [smartCard],
+      ...testTopology([smartCard]),
       selectedSelector: "smart-card-1",
       busy: false,
     });
 
     expect(presentation.tokens[0]).toEqual({
       value: "smart-card-1",
-      label: "Token2 FIDO Card · 86202012345678",
-      name: "Token2 FIDO Card",
-      detail: "S/N 86202012345678",
+      label: "Smart card",
+      name: "Smart card",
+      detail: "Token2 Smart Reader · PC/SC",
       icon: Nfc,
     });
   });
+});
+
+it("renders one physical token with HID and PCSC and preserves its selected endpoint", () => {
+  setAppLocale("en");
+  const hid = token.attachment;
+  const card = new EndpointReport({
+    attachment: {
+      id: "card-of-token-1",
+      transport: Mode.ModeSmartCard,
+      smartCard: new SmartCardReport({ reader: "Test reader" }),
+    },
+  }).attachment;
+  const device = new DeviceReport({ id: "physical-token", endpointIds: [hid.id, card.id] });
+  const sidebar = buildSidebarPresentation({
+    devices: [device],
+    endpoints: [new EndpointReport({ attachment: hid }), new EndpointReport({ attachment: card })],
+    activeScreen: "overview",
+    selectedSelector: device.id,
+    busy: false,
+  });
+  expect(sidebar.tokens).toHaveLength(1);
+  expect(sidebar.tokens[0]).toMatchObject({
+    value: device.id,
+    name: "Test key",
+    detail: "HID · PC/SC",
+    icon: Usb,
+  });
+  expect(sidebar.selectedValue).toBe(device.id);
+});
+
+it("names each physical group from its own endpoints without joining matching USB products", () => {
+  const hid = testHIDDevice("hid", "YubiKey FIDO+CCID");
+  const card = testSmartCardDevice("card");
+  card.sources.yubico = new YubicoSource({ modelName: "YubiKey 5C Nano" });
+  const second = testHIDDevice("second", "YubiKey FIDO+CCID");
+  const sidebar = buildSidebarPresentation({
+    activeScreen: "overview",
+    devices: [
+      new DeviceReport({ id: "first", endpointIds: ["hid", "card"] }),
+      new DeviceReport({ id: "second", endpointIds: ["second"] }),
+    ],
+    endpoints: [hid, card, second],
+    selectedSelector: "first",
+    busy: false,
+  });
+  expect(sidebar.tokens.map(({ value, name }) => ({ value, name }))).toEqual([
+    { value: "first", name: "YubiKey 5C Nano" },
+    { value: "second", name: "YubiKey FIDO+CCID" },
+  ]);
 });

@@ -4,7 +4,10 @@ import type { DiscoveryChangedEnvelope } from "../../bindings/telesma/service";
 import { Mode } from "../../bindings/github.com/telesma-app/kit/transport";
 
 import { m } from "../paraglide/messages.js";
-import { selectAuthenticatorSession, sessionUpdateApplied } from "$lib/authenticator-controller.js";
+import {
+  selectAuthenticatorEndpoint,
+  sessionUpdateApplied,
+} from "$lib/authenticator-controller.js";
 import { authenticatorSession } from "$lib/features/authenticator/state.js";
 import { failureMessage } from "$lib/failure.js";
 import { operationRecovery } from "$lib/operation-recovery.js";
@@ -41,26 +44,40 @@ function discoveryPresentation(
 }
 
 export async function handleDiscoveryChanged(envelope: DiscoveryChangedEnvelope) {
-  const previousSelector = get(authenticatorSession).selectedAttachmentId;
+  const previous = get(authenticatorSession);
+  const previousAttachmentId = previous.selectedAttachmentId;
+  const topologyChanged =
+    previous.devices.length !== envelope.snapshot.devices.length ||
+    previous.devices.some(
+      (device) => !envelope.snapshot.devices.some((next) => next.id === device.id),
+    );
   const selectedDisconnected =
-    Boolean(previousSelector) &&
-    !envelope.snapshot.devices.some((device) => device.attachment.id === previousSelector);
+    Boolean(previousAttachmentId) &&
+    !envelope.snapshot.endpoints.some(
+      (endpoint) => endpoint.attachment.id === previousAttachmentId,
+    );
 
   const change = applySessionSnapshot(envelope.snapshot);
   sessionUpdateApplied();
 
   if (get(operationRecovery)) {
-    const recoveryCard = envelope.snapshot.devices.find(
-      (device) => device.attachment.transport === Mode.ModeSmartCard,
+    const recoveryCard = envelope.snapshot.endpoints.find(
+      (endpoint) =>
+        endpoint.attachment.transport === Mode.ModeSmartCard &&
+        envelope.snapshot.devices.some((device) =>
+          device.endpointIds.includes(endpoint.attachment.id),
+        ),
     );
 
-    if (recoveryCard && recoveryCard.attachment.id !== envelope.snapshot.selection?.attachmentId) {
-      await selectAuthenticatorSession(recoveryCard.attachment.id);
+    if (recoveryCard && recoveryCard.attachment.id !== envelope.snapshot.selectedAttachmentId) {
+      await selectAuthenticatorEndpoint(recoveryCard.attachment.id);
 
       return;
     }
   }
 
-  setStatusOutcome(discoveryPresentation(envelope, selectedDisconnected));
-  if (change.becameReady) await loadActiveScreen();
+  if (topologyChanged || change.boundaryChanged || change.becameReady || envelope.snapshot.error) {
+    setStatusOutcome(discoveryPresentation(envelope, selectedDisconnected));
+  }
+  if (change.attachmentChanged || change.becameReady) await loadActiveScreen();
 }

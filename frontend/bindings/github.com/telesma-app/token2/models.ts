@@ -6,138 +6,161 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 /**
- * Appearance identifies the Token2 device appearance reported by its firmware.
+ * ATR contains Token2 identity data encoded in a PC/SC answer-to-reset.
  */
-export type Appearance = number[];
+export class ATR {
+    "raw": string;
+    "identity"?: ATRIdentity | null;
 
-/**
- * DeviceInfo contains normalized, transport-neutral information about a
- * Token2 device. Interface state and capability fields are meaningful when
- * their corresponding Known field is true.
- */
-export class DeviceInfo {
-    "serialNumber": string;
-    "release": string;
-    "formFactor": string;
-    "branding": string;
-    "productId"?: number;
-    "appearance"?: Appearance | null;
-    "fidoVersion"?: FIDOVersion | null;
-    "interfaceStateKnown": boolean;
-    "fidoEnabled": boolean;
-    "hotpKeystrokeEnabled": boolean;
-    "ccidEnabled": boolean;
-    "capabilitiesKnown": boolean;
-    "fidoPINSet": boolean;
-    "fidoPINLocked": boolean;
-    "supportsHOTP": boolean;
-    "supportsTOTP": boolean;
-    "supportsNFC": boolean;
-    "supportsCCID": boolean;
-    "supportsFIDO21": boolean;
-    "hasFingerprintSensor": boolean;
-    "supportsFingerprintRegistration": boolean;
-    "supportsMandatoryFingerprint": boolean;
-    "otpRequiresFingerprint": boolean;
-    "supportsButtonHOTP": boolean;
-    "buttonHOTPConfigured": boolean;
-    "buttonHOTPSendsEnter": boolean;
-    "buttonHOTPRequiresLongPress": boolean;
-    "buttonHOTPUsesNumericKeypad": boolean;
-
-    /** Creates a new DeviceInfo instance. */
-    constructor($$source: Partial<DeviceInfo> = {}) {
-        if (!("serialNumber" in $$source)) {
-            this["serialNumber"] = "";
-        }
-        if (!("release" in $$source)) {
-            this["release"] = "";
-        }
-        if (!("formFactor" in $$source)) {
-            this["formFactor"] = "";
-        }
-        if (!("branding" in $$source)) {
-            this["branding"] = "";
-        }
-        if (!("interfaceStateKnown" in $$source)) {
-            this["interfaceStateKnown"] = false;
-        }
-        if (!("fidoEnabled" in $$source)) {
-            this["fidoEnabled"] = false;
-        }
-        if (!("hotpKeystrokeEnabled" in $$source)) {
-            this["hotpKeystrokeEnabled"] = false;
-        }
-        if (!("ccidEnabled" in $$source)) {
-            this["ccidEnabled"] = false;
-        }
-        if (!("capabilitiesKnown" in $$source)) {
-            this["capabilitiesKnown"] = false;
-        }
-        if (!("fidoPINSet" in $$source)) {
-            this["fidoPINSet"] = false;
-        }
-        if (!("fidoPINLocked" in $$source)) {
-            this["fidoPINLocked"] = false;
-        }
-        if (!("supportsHOTP" in $$source)) {
-            this["supportsHOTP"] = false;
-        }
-        if (!("supportsTOTP" in $$source)) {
-            this["supportsTOTP"] = false;
-        }
-        if (!("supportsNFC" in $$source)) {
-            this["supportsNFC"] = false;
-        }
-        if (!("supportsCCID" in $$source)) {
-            this["supportsCCID"] = false;
-        }
-        if (!("supportsFIDO21" in $$source)) {
-            this["supportsFIDO21"] = false;
-        }
-        if (!("hasFingerprintSensor" in $$source)) {
-            this["hasFingerprintSensor"] = false;
-        }
-        if (!("supportsFingerprintRegistration" in $$source)) {
-            this["supportsFingerprintRegistration"] = false;
-        }
-        if (!("supportsMandatoryFingerprint" in $$source)) {
-            this["supportsMandatoryFingerprint"] = false;
-        }
-        if (!("otpRequiresFingerprint" in $$source)) {
-            this["otpRequiresFingerprint"] = false;
-        }
-        if (!("supportsButtonHOTP" in $$source)) {
-            this["supportsButtonHOTP"] = false;
-        }
-        if (!("buttonHOTPConfigured" in $$source)) {
-            this["buttonHOTPConfigured"] = false;
-        }
-        if (!("buttonHOTPSendsEnter" in $$source)) {
-            this["buttonHOTPSendsEnter"] = false;
-        }
-        if (!("buttonHOTPRequiresLongPress" in $$source)) {
-            this["buttonHOTPRequiresLongPress"] = false;
-        }
-        if (!("buttonHOTPUsesNumericKeypad" in $$source)) {
-            this["buttonHOTPUsesNumericKeypad"] = false;
+    /** Creates a new ATR instance. */
+    constructor($$source: Partial<ATR> = {}) {
+        if (!("raw" in $$source)) {
+            this["raw"] = "";
         }
 
         Object.assign(this, $$source);
     }
 
     /**
-     * Creates a new DeviceInfo instance from a string or object.
+     * Creates a new ATR instance from a string or object.
      */
-    static createFrom($$source: any = {}): DeviceInfo {
-        const $$createField6_0 = $$createType1;
+    static createFrom($$source: any = {}): ATR {
+        const $$createField0_0 = $Create.ByteSlice;
+        const $$createField1_0 = $$createType1;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("fidoVersion" in $$parsedSource) {
-            $$parsedSource["fidoVersion"] = $$createField6_0($$parsedSource["fidoVersion"]);
+        if ("raw" in $$parsedSource) {
+            $$parsedSource["raw"] = $$createField0_0($$parsedSource["raw"]);
         }
-        return new DeviceInfo($$parsedSource as Partial<DeviceInfo>);
+        if ("identity" in $$parsedSource) {
+            $$parsedSource["identity"] = $$createField1_0($$parsedSource["identity"]);
+        }
+        return new ATR($$parsedSource as Partial<ATR>);
     }
 }
+
+/**
+ * ATRIdentity is present only for Token2's vendor historical-byte format.
+ */
+export class ATRIdentity {
+    "productId": number;
+    "serialSuffix": string;
+
+    /** Creates a new ATRIdentity instance. */
+    constructor($$source: Partial<ATRIdentity> = {}) {
+        if (!("productId" in $$source)) {
+            this["productId"] = 0;
+        }
+        if (!("serialSuffix" in $$source)) {
+            this["serialSuffix"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ATRIdentity instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ATRIdentity {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ATRIdentity($$parsedSource as Partial<ATRIdentity>);
+    }
+}
+
+/**
+ * Appearance identifies the Token2 device appearance reported by its firmware.
+ */
+export type Appearance = number[];
+
+/**
+ * Configuration holds the decoded response; Raw retains all bytes, including
+ * unknown fields.
+ */
+export class Configuration {
+    "raw": string;
+    "transferType": TransferType;
+    "deviceConfiguration": DeviceConfiguration;
+    "appearance": Appearance;
+    "fidoVersion": FIDOVersion;
+    "deviceExtension": DeviceExtension;
+
+    /** Creates a new Configuration instance. */
+    constructor($$source: Partial<Configuration> = {}) {
+        if (!("raw" in $$source)) {
+            this["raw"] = "";
+        }
+        if (!("transferType" in $$source)) {
+            this["transferType"] = TransferType.$zero;
+        }
+        if (!("deviceConfiguration" in $$source)) {
+            this["deviceConfiguration"] = DeviceConfiguration.$zero;
+        }
+        if (!("appearance" in $$source)) {
+            this["appearance"] = Array.from({ length: 4 }, () => 0);
+        }
+        if (!("fidoVersion" in $$source)) {
+            this["fidoVersion"] = (new FIDOVersion());
+        }
+        if (!("deviceExtension" in $$source)) {
+            this["deviceExtension"] = DeviceExtension.$zero;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Configuration instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Configuration {
+        const $$createField0_0 = $Create.ByteSlice;
+        const $$createField4_0 = $$createType2;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("raw" in $$parsedSource) {
+            $$parsedSource["raw"] = $$createField0_0($$parsedSource["raw"]);
+        }
+        if ("fidoVersion" in $$parsedSource) {
+            $$parsedSource["fidoVersion"] = $$createField4_0($$parsedSource["fidoVersion"]);
+        }
+        return new Configuration($$parsedSource as Partial<Configuration>);
+    }
+}
+
+/**
+ * DeviceConfiguration contains the device's configuration and capability bits.
+ */
+export enum DeviceConfiguration {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = 0,
+
+    DeviceConfigurationHOTPSuppressEnterMask = 1,
+    DeviceConfigurationFIDOPINSetMask = 2,
+    DeviceConfigurationHOTPMask = 4,
+    DeviceConfigurationFingerprintSensorMask = 8,
+    DeviceConfigurationNFCMask = 16,
+    DeviceConfigurationHOTPLongPressMask = 32,
+    DeviceConfigurationFIDOPINLockedMask = 64,
+    DeviceConfigurationButtonHOTPConfiguredMask = 128,
+};
+
+/**
+ * DeviceExtension contains the extended configuration and capability bits.
+ */
+export enum DeviceExtension {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = 0,
+
+    DeviceExtensionTOTPMask = 1,
+    DeviceExtensionFIDO21Mask = 2,
+    DeviceExtensionFingerprintRegistrationMask = 4,
+    DeviceExtensionHOTPNumericKeypadMask = 8,
+    DeviceExtensionCCIDMask = 16,
+    DeviceExtensionButtonHOTPUnsupportedMask = 32,
+    DeviceExtensionOTPRequiresFingerprintMask = 64,
+    DeviceExtensionMandatoryFingerprintSupportMask = 128,
+};
 
 /**
  * FIDOVersion is the three-component FIDO version reported by a Token2 device.
@@ -171,6 +194,53 @@ export class FIDOVersion {
     }
 }
 
+/**
+ * Model is a serial-catalogue match, independent of raw command readings.
+ */
+export class Model {
+    "release": string;
+    "formFactor": string;
+    "branding": string;
+
+    /** Creates a new Model instance. */
+    constructor($$source: Partial<Model> = {}) {
+        if (!("release" in $$source)) {
+            this["release"] = "";
+        }
+        if (!("formFactor" in $$source)) {
+            this["formFactor"] = "";
+        }
+        if (!("branding" in $$source)) {
+            this["branding"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Model instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Model {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new Model($$parsedSource as Partial<Model>);
+    }
+}
+
+/**
+ * TransferType is the interface-state bitmask reported by the device.
+ */
+export enum TransferType {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = 0,
+
+    TransferTypeFIDODisabledMask = 1,
+    TransferTypeHOTPKeystrokeDisabledMask = 2,
+    TransferTypeCCIDDisabledMask = 4,
+};
+
 // Private type creation functions
-const $$createType0 = FIDOVersion.createFrom;
+const $$createType0 = ATRIdentity.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
+const $$createType2 = FIDOVersion.createFrom;

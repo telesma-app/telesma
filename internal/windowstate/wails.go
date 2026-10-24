@@ -29,6 +29,7 @@ func Track(window *application.WebviewWindow, tracker *Tracker, statePath string
 	})
 	window.RegisterHook(events.Common.WindowClosing, func(_ *application.WindowEvent) {
 		RecordCurrent(window, tracker)
+
 		if statePath != "" {
 			_ = Save(statePath, tracker.Snapshot())
 		}

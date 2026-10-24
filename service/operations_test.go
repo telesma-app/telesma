@@ -123,7 +123,6 @@ func TestPINRequestsRoundTripSecrets(t *testing.T) {
 	}
 
 	raw, err := json.Marshal(setPIN)
-
 	if err != nil {
 		t.Fatalf("marshal set PIN request: %v", err)
 	}

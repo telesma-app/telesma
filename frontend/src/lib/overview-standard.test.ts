@@ -15,7 +15,7 @@ import {
   PayloadEntry,
   StatusReport,
 } from "../../bindings/github.com/telesma-app/mds/model";
-import { DeviceReport } from "../../bindings/github.com/telesma-app/kit/model/report";
+import { EndpointReport } from "../../bindings/github.com/telesma-app/kit/model/report";
 import { Mode } from "../../bindings/github.com/telesma-app/kit/transport";
 import { setAppLocale } from "$lib/i18n";
 import { testOverviewAssessment, testOverviewFact } from "$lib/test-support/overview-facts";
@@ -97,7 +97,7 @@ describe("buildOverviewStandardPresentation", () => {
           fipsRevision: 3,
         }),
       ),
-      device: new DeviceReport({
+      device: new EndpointReport({
         attachment: { id: "hid", transport: Mode.ModeHID },
       }),
     });
@@ -188,7 +188,7 @@ describe("buildOverviewStandardPresentation", () => {
       facts,
       mdsState: "missing",
       mds: null,
-      device: new DeviceReport({
+      device: new EndpointReport({
         attachment: { id: "smart-card", transport: Mode.ModeSmartCard },
       }),
     });

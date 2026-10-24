@@ -16,15 +16,23 @@
   let detailsOpen = $state(false);
 </script>
 
-<Card.Root size="sm" class="vendor-passport">
+<Card.Root
+  size="sm"
+  class="vendor-passport"
+  aria-label={presentation.vendor ? m.group_vendor_details() : m.source_attachment_title()}
+>
   <Card.Header class="vendor-passport-header">
     <div class="vendor-passport-heading">
       <span class="vendor-passport-icon" aria-hidden="true">
         <FactoryIcon size={18} />
       </span>
       <div class="vendor-passport-copy">
-        <Card.Title role="heading" aria-level={2}>{m.group_vendor_details()}</Card.Title>
-        <Card.Description>{presentation.vendor}</Card.Description>
+        <Card.Title role="heading" aria-level={2}
+          >{presentation.vendor
+            ? m.group_vendor_details()
+            : m.source_attachment_title()}</Card.Title
+        >
+        {#if presentation.vendor}<Card.Description>{presentation.vendor}</Card.Description>{/if}
       </div>
     </div>
     <Card.Action>
@@ -33,14 +41,16 @@
   </Card.Header>
 
   <Card.Content class="vendor-passport-content">
-    <dl class="vendor-passport-core">
-      {#each presentation.coreFacts as fact (fact.source)}
-        <div>
-          <dt>{fact.label}</dt>
-          <dd data-text-selectable="true">{fact.value}</dd>
-        </div>
-      {/each}
-    </dl>
+    {#if presentation.coreFacts.length}
+      <dl class="vendor-passport-core">
+        {#each presentation.coreFacts as fact (fact.source)}
+          <div>
+            <dt>{fact.label}</dt>
+            <dd data-text-selectable="true">{fact.value}</dd>
+          </div>
+        {/each}
+      </dl>
+    {/if}
 
     {#if presentation.scopeNote}
       <p class="vendor-passport-note">{presentation.scopeNote}</p>

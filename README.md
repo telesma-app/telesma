@@ -6,7 +6,7 @@ The application discovers connected authenticators, opens the selected device au
 
 ## Features
 
-- Inspect authenticator identity, CTAP versions, options, algorithms, transports, extensions, limits, and vendor metadata.
+- Inspect USB/HID and PC/SC device data, CTAP capabilities, and vendor-specific information.
 - Look up authenticator metadata and status reports through the FIDO Metadata Service (MDS).
 - List, inspect, rename, and delete discoverable passkeys with operation previews and confirmations.
 - Inspect and manage the authenticator large-blob array, including entry writes, deletes, and cleanup previews.
@@ -25,10 +25,10 @@ Available operations depend on the capabilities and state of the connected authe
 - Native Wails build dependencies for your platform
 - A locally accessible FIDO authenticator and a supported transport
 
-This repository pins Wails and `@wailsio/runtime` to `v3.0.0-beta.28`. Install the matching CLI:
+This repository pins Wails and `@wailsio/runtime` to `v3.0.0-beta.31`. Install the matching CLI:
 
 ```sh
-go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.28
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.31
 ```
 
 Check the platform dependencies with the instructions in the [Wails 3 documentation](https://v3.wails.io/).
@@ -79,6 +79,12 @@ wails3 task common:generate:bindings
 
 ## Verification
 
+Run Go linters with [golangci-lint v2](https://golangci-lint.run/) (v2.2.0 or newer):
+
+```sh
+wails3 task lint
+```
+
 Run backend tests:
 
 ```sh
@@ -107,8 +113,8 @@ Telesma is the product and desktop boundary over `ctapkit`. Reusable authenticat
 
 - `main.go` configures the Wails application and native window.
 - `service/` contains application-owned discovery, selection, interaction, logging, metadata, and typed operation envelopes.
-- `ctapkit_service.go` wires the service into the Wails lifecycle.
-- `ctapkit_operations.go` exposes the Wails-facing operation facade.
+- `service/wails.go` wires the service into the Wails lifecycle.
+- `service/operations.go` exposes the Wails-facing operation facade.
 - `appconfig/` persists application settings such as locale and advanced mode.
 - `frontend/src/App.svelte` is the desktop shell.
 - `frontend/src/screens/` contains the Overview, Passkeys, Large Blobs, Security, Lab, Logs, and Settings screens.

@@ -218,7 +218,7 @@ export class DeleteResult {
  * InventoryReport is the project-owned resident credential DTO shared by every output mode.
  */
 export class InventoryReport {
-    "device": report$0.DeviceReport;
+    "device": report$0.EndpointReport;
     "support": SupportReport;
     "summary": InventorySummary;
     "groups"?: CredentialGroup[];
@@ -226,7 +226,7 @@ export class InventoryReport {
     /** Creates a new InventoryReport instance. */
     constructor($$source: Partial<InventoryReport> = {}) {
         if (!("device" in $$source)) {
-            this["device"] = (new report$0.DeviceReport());
+            this["device"] = (new report$0.EndpointReport());
         }
         if (!("support" in $$source)) {
             this["support"] = (new SupportReport());
@@ -505,7 +505,7 @@ const $$createType6 = DeleteResult.createFrom;
 const $$createType7 = $Create.Nullable($$createType6);
 const $$createType8 = safety$0.Warning.createFrom;
 const $$createType9 = $Create.Array($$createType8);
-const $$createType10 = report$0.DeviceReport.createFrom;
+const $$createType10 = report$0.EndpointReport.createFrom;
 const $$createType11 = SupportReport.createFrom;
 const $$createType12 = InventorySummary.createFrom;
 const $$createType13 = CredentialGroup.createFrom;

@@ -1,10 +1,11 @@
+import { Info } from "../../bindings/github.com/telesma-app/kit/model/inspect";
 import { describe, expect, it } from "vitest";
 
 import type { InventoryReport } from "../../bindings/github.com/telesma-app/kit/model/credentials";
 import type {
   CredentialDeleteEnvelope,
   GetAssertionEnvelope,
-  InspectEnvelope,
+  GetInfoEnvelope,
   LargeBlobDecodeEnvelope,
   MakeCredentialEnvelope,
 } from "../../bindings/telesma/service";
@@ -14,7 +15,7 @@ import {
   credentialDeleteResult,
   credentialTarget,
   getAssertionResult,
-  inspectResult,
+  getInfoResult,
   largeBlobDecodeResult,
   makeCredentialPreview,
   makeCredentialResult,
@@ -22,12 +23,12 @@ import {
 
 describe("typed operation result traversal", () => {
   it("extracts direct results and rejects empty envelopes", () => {
-    const inspect = { device: {}, info: {} };
+    const inspect = new Info();
     const decoded = { mode: "json", value: { hello: true } };
 
-    expect(inspectResult({ result: inspect } as InspectEnvelope)).toBe(inspect);
+    expect(getInfoResult({ result: inspect } as GetInfoEnvelope)).toBe(inspect);
     expect(largeBlobDecodeResult({ result: decoded } as LargeBlobDecodeEnvelope)).toBe(decoded);
-    expect(inspectResult(null)).toBeNull();
+    expect(getInfoResult(null)).toBeNull();
     expect(largeBlobDecodeResult({} as LargeBlobDecodeEnvelope)).toBeNull();
   });
 

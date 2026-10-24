@@ -112,13 +112,13 @@ type GetAssertionRequest struct {
 	webauthn.GetAssertionOperation
 }
 
-func (s *Service) Inspect(ctx context.Context, req OperationRequest) InspectEnvelope {
+func (s *Service) GetInfo(ctx context.Context, req OperationRequest) GetInfoEnvelope {
 	meta, result := runInputlessOperation(
-		s, ctx, req, appoperation.Inspect,
-		(*ctapkit.Authenticator).Inspect,
+		s, ctx, req, appoperation.GetInfo,
+		(*ctapkit.Authenticator).GetInfo,
 	)
 
-	return InspectEnvelope{OperationEnvelopeMeta: meta, Result: result}
+	return GetInfoEnvelope{OperationEnvelopeMeta: meta, Result: result}
 }
 
 func (s *Service) ListCredentials(ctx context.Context, req OperationRequest) CredentialsEnvelope {

@@ -17,6 +17,7 @@ func TestDecodeLargeBlobSuccess(t *testing.T) {
 	if envelope.Error != nil {
 		t.Fatalf("DecodeLargeBlob envelope error = %#v", envelope.Error)
 	}
+
 	if envelope.Result == nil ||
 		envelope.Result.Mode != largeblobs.DecodeModeUTF8 ||
 		envelope.Result.Text != "hello" {
@@ -32,9 +33,11 @@ func TestDecodeLargeBlobInvalidHexUsesOnlyTypedInternalError(t *testing.T) {
 	if envelope.Result != nil {
 		t.Fatalf("DecodeLargeBlob result = %#v, want nil", envelope.Result)
 	}
+
 	if envelope.Error == nil || envelope.Error.Code != failure.CodeInternalError {
 		t.Fatalf("DecodeLargeBlob envelope error = %#v, want %s", envelope.Error, failure.CodeInternalError)
 	}
+
 	if envelope.Error.Phase != failure.PhaseDecode {
 		t.Fatalf("DecodeLargeBlob failure phase = %q, want %q", envelope.Error.Phase, failure.PhaseDecode)
 	}
@@ -74,6 +77,7 @@ func TestLargeBlobDecodeEnvelopeJSONUsesExclusiveResultOrError(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Marshal: %v", err)
 			}
+
 			if string(raw) != test.want {
 				t.Fatalf("JSON = %s, want %s", raw, test.want)
 			}

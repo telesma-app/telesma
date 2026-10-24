@@ -42,8 +42,8 @@ func TestTrustedKeyFingerprint(t *testing.T) {
 func TestSignedDatasetVerificationAndExactLookup(t *testing.T) {
 	entity := testEntity(t)
 	signed := signPayload(t, entity, testDataset)
-	index, err := verifyAndIndex(signed, openpgp.EntityList{entity})
 
+	index, err := verifyAndIndex(signed, openpgp.EntityList{entity})
 	if err != nil {
 		t.Fatalf("verify signed dataset: %v", err)
 	}
@@ -86,7 +86,6 @@ func TestLookupFallsBackToDeclaredParentsWithinRegistrableDomain(t *testing.T) {
   "github.io": {"notes": "private suffix"},
   "0.1": {"notes": "IP suffix"}
 }`))
-
 	if err != nil {
 		t.Fatalf("parse catalog: %v", err)
 	}
@@ -175,7 +174,6 @@ func TestCatalogOmitsNonHTTPSLinks(t *testing.T) {
     "recovery": "javascript:alert(1)"
   }
 }`))
-
 	if err != nil {
 		t.Fatalf("parse catalog: %v", err)
 	}
@@ -198,7 +196,9 @@ func TestCacheFreshRejectsFutureValidationTime(t *testing.T) {
 func TestLookupCachesAndConditionallyRefreshes(t *testing.T) {
 	entity := testEntity(t)
 	signed := signPayload(t, entity, testDataset)
+
 	var calls atomic.Int32
+
 	var conditional atomic.Bool
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -231,7 +231,6 @@ func TestLookupCachesAndConditionallyRefreshes(t *testing.T) {
 		context.Background(),
 		PasskeyDirectoryLookupRequest{RPIDs: []string{"example.com"}},
 	)
-
 	if err != nil {
 		t.Fatalf("initial lookup: %v", err)
 	}
@@ -252,11 +251,11 @@ func TestLookupCachesAndConditionallyRefreshes(t *testing.T) {
 	}
 
 	now = now.Add(refreshInterval + time.Minute)
+
 	revalidated, err := service.LookupPasskeyDirectory(
 		context.Background(),
 		PasskeyDirectoryLookupRequest{RPIDs: []string{"example.com"}},
 	)
-
 	if err != nil {
 		t.Fatalf("conditional lookup: %v", err)
 	}
@@ -269,11 +268,11 @@ func TestLookupCachesAndConditionallyRefreshes(t *testing.T) {
 	}
 
 	now = now.Add(refreshInterval + time.Minute)
+
 	_, err = service.LookupPasskeyDirectory(
 		context.Background(),
 		PasskeyDirectoryLookupRequest{RPIDs: []string{"example.com"}},
 	)
-
 	if err == nil {
 		t.Fatal("expired cache lookup succeeded after refresh failure")
 	}
@@ -283,11 +282,11 @@ func TestLookupCachesAndConditionallyRefreshes(t *testing.T) {
 	}
 
 	restarted := testService(server, path, &now, entity)
+
 	_, err = restarted.LookupPasskeyDirectory(
 		context.Background(),
 		PasskeyDirectoryLookupRequest{RPIDs: []string{"example.com"}},
 	)
-
 	if err == nil {
 		t.Fatal("restarted service used an expired cache after refresh failure")
 	}
@@ -302,6 +301,7 @@ func TestInvalidRefreshRejectsExpiredCache(t *testing.T) {
 	valid := signPayload(t, entity, testDataset)
 	other := testEntity(t)
 	invalid := signPayload(t, other, testDataset)
+
 	var calls atomic.Int32
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -326,11 +326,11 @@ func TestInvalidRefreshRejectsExpiredCache(t *testing.T) {
 	}
 
 	now = now.Add(refreshInterval + time.Minute)
+
 	_, err := service.LookupPasskeyDirectory(
 		context.Background(),
 		PasskeyDirectoryLookupRequest{RPIDs: []string{"example.com"}},
 	)
-
 	if err == nil {
 		t.Fatal("expired cache lookup succeeded after invalid refresh")
 	}
@@ -348,6 +348,7 @@ func TestValidRefreshReplacesVerifiedCache(t *testing.T) {
     "passwordless": "required"
   }
 }`)
+
 	var calls atomic.Int32
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -375,11 +376,11 @@ func TestValidRefreshReplacesVerifiedCache(t *testing.T) {
 	}
 
 	now = now.Add(refreshInterval + time.Minute)
+
 	result, err := service.LookupPasskeyDirectory(
 		context.Background(),
 		PasskeyDirectoryLookupRequest{RPIDs: []string{"example.com", "replacement.example"}},
 	)
-
 	if err != nil {
 		t.Fatalf("refresh cache: %v", err)
 	}
@@ -421,11 +422,11 @@ func TestLookupWithoutVerifiedCacheReturnsRefreshFailures(t *testing.T) {
 
 			now := time.Date(2026, time.August, 17, 0, 0, 0, 0, time.UTC)
 			service := testService(server, filepath.Join(t.TempDir(), cacheFile), &now, entity)
+
 			_, err := service.LookupPasskeyDirectory(
 				context.Background(),
 				PasskeyDirectoryLookupRequest{RPIDs: []string{"example.com"}},
 			)
-
 			if err == nil {
 				t.Fatal("lookup succeeded")
 			}
@@ -435,8 +436,10 @@ func TestLookupWithoutVerifiedCacheReturnsRefreshFailures(t *testing.T) {
 
 func TestLookupHonorsHTTPTimeout(t *testing.T) {
 	entity := testEntity(t)
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		time.Sleep(100 * time.Millisecond)
+
 		_, _ = w.Write(signPayload(t, entity, testDataset))
 	}))
 	defer server.Close()
@@ -456,10 +459,12 @@ func TestLookupHonorsHTTPTimeout(t *testing.T) {
 func TestConcurrentLookupsShareRefresh(t *testing.T) {
 	entity := testEntity(t)
 	signed := signPayload(t, entity, testDataset)
+
 	var calls atomic.Int32
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		calls.Add(1)
+
 		_, _ = w.Write(signed)
 	}))
 	defer server.Close()
@@ -468,6 +473,7 @@ func TestConcurrentLookupsShareRefresh(t *testing.T) {
 	service := testService(server, filepath.Join(t.TempDir(), cacheFile), &now, entity)
 	start := make(chan struct{})
 	errorsByCall := make(chan error, 8)
+
 	var wait sync.WaitGroup
 
 	for range 8 {
@@ -475,7 +481,9 @@ func TestConcurrentLookupsShareRefresh(t *testing.T) {
 
 		go func() {
 			defer wait.Done()
+
 			<-start
+
 			_, err := service.LookupPasskeyDirectory(
 				context.Background(),
 				PasskeyDirectoryLookupRequest{RPIDs: []string{"example.com"}},
@@ -502,6 +510,7 @@ func TestConcurrentLookupsShareRefresh(t *testing.T) {
 func TestMalformedCacheIsReplacedByVerifiedRefresh(t *testing.T) {
 	entity := testEntity(t)
 	signed := signPayload(t, entity, testDataset)
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write(signed)
 	}))
@@ -515,11 +524,11 @@ func TestMalformedCacheIsReplacedByVerifiedRefresh(t *testing.T) {
 	}
 
 	service := testService(server, path, &now, entity)
+
 	result, err := service.LookupPasskeyDirectory(
 		context.Background(),
 		PasskeyDirectoryLookupRequest{RPIDs: []string{"example.com"}},
 	)
-
 	if err != nil {
 		t.Fatalf("refresh malformed cache: %v", err)
 	}
@@ -554,7 +563,6 @@ func testEntity(t *testing.T) *openpgp.Entity {
 		DefaultHash: crypto.SHA256,
 		RSABits:     1024,
 	})
-
 	if err != nil {
 		t.Fatalf("create test signing key: %v", err)
 	}
@@ -566,8 +574,8 @@ func signPayload(t *testing.T, entity *openpgp.Entity, payload string) []byte {
 	t.Helper()
 
 	var output bytes.Buffer
-	writer, err := openpgp.Sign(&output, entity, nil, nil)
 
+	writer, err := openpgp.Sign(&output, entity, nil, nil)
 	if err != nil {
 		t.Fatalf("create signed message: %v", err)
 	}

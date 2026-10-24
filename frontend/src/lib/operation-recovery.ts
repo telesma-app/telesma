@@ -3,7 +3,11 @@ import { derived, get, writable } from "svelte/store";
 import { Code, type Failure } from "../../bindings/github.com/telesma-app/kit/model/failure";
 import { Mode } from "../../bindings/github.com/telesma-app/kit/transport";
 
-import { authenticatorStatus, devices, selectedDevice } from "$lib/features/authenticator/state.js";
+import {
+  authenticatorStatus,
+  endpoints,
+  selectedDevice,
+} from "$lib/features/authenticator/state.js";
 
 export type OperationRecoveryDecision = "cancel" | "retry";
 
@@ -44,7 +48,7 @@ function noteRemoval() {
     if (!current || current.sawRemoval) return current;
 
     const selected = get(selectedDevice);
-    const originalPresent = get(devices).some(
+    const originalPresent = get(endpoints).some(
       (device) => device.attachment.id === current.originalAttachmentID,
     );
 
@@ -57,20 +61,20 @@ function noteRemoval() {
 }
 
 selectedDevice.subscribe(noteRemoval);
-devices.subscribe(noteRemoval);
+endpoints.subscribe(noteRemoval);
 
 export const operationRecovery = derived(
-  [intent, devices, selectedDevice, authenticatorStatus],
+  [intent, endpoints, selectedDevice, authenticatorStatus],
   ([
     $intent,
-    $devices,
+    $endpoints,
     $selectedDevice,
     $authenticatorStatus,
   ]): OperationRecoveryPresentation | null => {
     if (!$intent) return null;
 
     const selectedSmartCard = $selectedDevice?.attachment.transport === Mode.ModeSmartCard;
-    const cardVisible = $devices.some(
+    const cardVisible = $endpoints.some(
       (device) => device.attachment.transport === Mode.ModeSmartCard,
     );
     const canRetry =

@@ -52,7 +52,7 @@ import {
 import { selectedSelector, authenticatorStatus } from "$lib/features/authenticator/state.js";
 import { activeScreen } from "$lib/features/workbench/state.js";
 import { failureMessage } from "$lib/failure.js";
-import { invalidateOverviewCache } from "$lib/overview-controller.js";
+import { invalidateOverviewCache, loadOverview } from "$lib/overview-controller.js";
 import { rediscoverAfterFactoryReset } from "$lib/authenticator-controller.js";
 import {
   editingConfirmedOperation,
@@ -213,6 +213,7 @@ async function runPINOperation(label: string, call: () => Promise<PINEnvelope>):
 async function refreshSecurityAfterConfigurationChange() {
   invalidateOverviewCache();
   await loadSecurityStatus();
+  await loadOverview();
 }
 
 export async function setAuthenticatorPIN(input: PINSetInput): Promise<boolean> {

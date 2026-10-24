@@ -38,7 +38,8 @@ import {
   type EnableLongTouchForResetRequest,
   type GetAssertionEnvelope,
   type GetAssertionRequest,
-  type InspectEnvelope,
+  type GetInfoEnvelope,
+  type MetadataRequest,
   type InteractionAnswer,
   type LargeBlobDecodeEnvelope,
   type LargeBlobDecodeRequest,
@@ -66,13 +67,14 @@ import {
   type ResetFactoryRequest,
   type ReadLogsRequest,
   type SelectionRequest,
+  type EndpointSelectionRequest,
   type GetAssertionVerificationRequest,
 } from "../../bindings/telesma/service";
 
 import { runtimeCall } from "$lib/features/logs/state.svelte.js";
 
 export type OperationEnvelope =
-  | InspectEnvelope
+  | GetInfoEnvelope
   | CredentialsEnvelope
   | CredentialDeleteEnvelope
   | CredentialUpdateEnvelope
@@ -129,6 +131,12 @@ export const api = {
     return runtimeCall("ctapkit.selection.set", () => service.SetSelection(request));
   },
 
+  setEndpointSelection(request: EndpointSelectionRequest): Promise<void> {
+    return runtimeCall("ctapkit.selection.endpoint.set", () =>
+      service.SetEndpointSelection(request),
+    );
+  },
+
   reconnectSelection(): Promise<void> {
     return runtimeCall("ctapkit.selection.reconnect", () => service.ReconnectSelection());
   },
@@ -141,8 +149,16 @@ export const api = {
     return runtimeCall("ctapkit.interaction.resolve", () => service.ResolveInteraction(answer));
   },
 
-  inspect(request: OperationRequest): Promise<InspectEnvelope> {
-    return runtimeCall("ctapkit.operation.inspect", () => service.Inspect(request));
+  getInfo(request: OperationRequest): Promise<GetInfoEnvelope> {
+    return runtimeCall("ctapkit.operation.getInfo", () => service.GetInfo(request));
+  },
+
+  readSources(request: SelectionRequest): Promise<void> {
+    return runtimeCall("ctapkit.sources.read", () => service.ReadSources(request));
+  },
+
+  refreshMetadata(request: MetadataRequest): Promise<void> {
+    return runtimeCall("ctapkit.metadata.refresh", () => service.RefreshMetadata(request));
   },
 
   bioSensorInfo(request: OperationRequest): Promise<BioSensorEnvelope> {

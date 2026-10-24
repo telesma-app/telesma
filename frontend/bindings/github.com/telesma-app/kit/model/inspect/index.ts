@@ -10,8 +10,7 @@ export {
     FactUnit,
     FactValue,
     FactValueKind,
-    Info,
-    Result
+    Info
 } from "./models.js";
 
 export type {

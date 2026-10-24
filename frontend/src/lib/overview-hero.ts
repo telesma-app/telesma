@@ -1,3 +1,8 @@
+import {
+  DescriptorState,
+  type EndpointReport,
+} from "../../bindings/github.com/telesma-app/kit/model/report";
+import { Mode } from "../../bindings/github.com/telesma-app/kit/transport";
 import type {
   LookupResult,
   MetadataStatement,
@@ -44,45 +49,71 @@ export function buildOverviewHero(context: OverviewHeroContext = {}): OverviewHe
   const latestStatus = statusReports.find((report) => !isFipsStatus(report.status)) ?? null;
   const rawAaguid = info?.aaguid || mdsResult?.aaguid;
   const aaguid = formatAaguid(rawAaguid);
-  const deviceName = device ? formattedDeviceName(device) : "";
-  const mdsName = preferredMDSName(statement);
+  const endpoints = context.endpoints ?? (device ? [device] : []);
+  const deviceName = device ? formattedDeviceName(device, endpoints) : "";
   const found = mdsResult?.found === true;
   const hasLookup = Boolean(mdsResult);
   const status = textValue(latestStatus?.status, "");
   const mdsState = resolveMDSState(context, found, hasLookup);
 
   return {
-    title: deviceName || mdsName || m.selected_authenticator(),
-    subtitle: textValue(statement?.description, "") || m.current_authenticator_overview(),
-    serialNumber: textValue(device?.identity?.serialNumber, ""),
-    versionBadge: vendorVersionBadge(device),
+    title: deviceName || m.selected_authenticator(),
+    subtitle: [
+      ...new Set(
+        endpoints.map((endpoint) =>
+          endpoint.attachment.transport === Mode.ModeSmartCard
+            ? "PC/SC"
+            : endpoint.attachment.transport === Mode.ModeWindowsProxy
+              ? "Windows"
+              : "USB · HID",
+        ),
+      ),
+    ].join(" · "),
+    serialNumber: deviceSerialNumber(endpoints),
+    versionBadge: vendorVersionBadge(endpoints),
+    iconSrc: safeMDSImage(statement?.icon) || safeMDSImage(statement?.iconDark),
     aaguid,
     aaguidAvailable: hasAaguid(rawAaguid, aaguid),
-    iconSrc: safeMDSImage(statement?.icon) || safeMDSImage(statement?.iconDark) || "",
     mdsState,
     mdsStateLabel: mdsStateText(mdsState),
     mdsDescription: mdsDescriptionText(mdsState, context.mdsError),
+    mdsName: textValue(statement?.description, ""),
+    mdsRefreshMessage:
+      mdsResult && context.mdsError
+        ? m.mds_refresh_failed_retained({ message: context.mdsError })
+        : "",
     mdsStatusFacts: statusReportFacts(latestStatus, statement, entry, status, found, mdsState),
     mdsBlobFacts: metadataBlobFacts(mdsResult, hasLookup),
   };
 }
 
-function vendorVersionBadge(device: OverviewHeroContext["device"]) {
-  const token2Release = device?.vendorMetadata?.token2?.release;
+function deviceSerialNumber(endpoints: EndpointReport[]) {
+  const serial = endpoints
+    .map(
+      (endpoint) =>
+        endpoint.sources.yubico.data?.serialNumber ??
+        endpoint.sources.token2.data?.serialNumber.value,
+    )
+    .find((value) => value != null && value !== "");
+  if (serial != null) return String(serial);
 
-  if (token2Release) {
-    return m.token_release_badge({ version: token2Release.slice(1) });
-  }
+  const usb = endpoints.find((endpoint) => endpoint.attachment.usb)?.attachment.usb;
+  return usb?.reportedSerial.state === DescriptorState.DescriptorRead
+    ? usb.reportedSerial.value!
+    : "";
+}
 
-  const yubicoVersion = device?.vendorMetadata?.yubico?.firmwareVersion;
+function vendorVersionBadge(endpoints: EndpointReport[]) {
+  const revision = endpoints.find((endpoint) => endpoint.sources.token2.data?.model?.release)
+    ?.sources.token2.data?.model?.release;
+  if (revision) return `${m.matrix_name_token2_release()} ${revision}`;
 
-  if (yubicoVersion && (yubicoVersion.major || yubicoVersion.minor || yubicoVersion.build)) {
-    return m.token_firmware_badge({
-      version: `${yubicoVersion.major}.${yubicoVersion.minor}.${yubicoVersion.build}`,
-    });
-  }
-
-  return "";
+  const version = endpoints
+    .map((endpoint) => endpoint.sources.yubico.data?.firmwareVersion)
+    .find((version) => version && (version.major || version.minor || version.build));
+  return version
+    ? m.token_firmware_badge({ version: `${version.major}.${version.minor}.${version.build}` })
+    : "";
 }
 
 export function buildOverviewMDSObservations(
@@ -162,17 +193,6 @@ function fipsCertificationFact(statement: MetadataStatement | null, found: boole
   );
 }
 
-function preferredMDSName(statement: MetadataStatement | null) {
-  const names = statement?.friendlyNames ?? {};
-
-  return (
-    textValue(names["en-US"], "") ||
-    textValue(names.en, "") ||
-    textValue(Object.values(names).find(Boolean), "") ||
-    textValue(statement?.description, "")
-  );
-}
-
 function statusReportFacts(
   latestStatus: StatusReport | null,
   statement: MetadataStatement | null,
@@ -233,8 +253,8 @@ function metadataBlobFacts(result: LookupResult | null, hasLookup: boolean) {
       !hasLookup,
     ),
     heroFact(
-      m.mds_snapshot_saved(),
-      mdsCachedAtText(result, hasLookup),
+      m.mds_last_checked(),
+      mdsCheckedAtText(result, hasLookup),
       hasLookup ? "default" : "muted",
       !hasLookup,
     ),
@@ -257,10 +277,10 @@ function mdsBlobLoadText(result: LookupResult | null, hasLookup: boolean) {
   return m.not_reported();
 }
 
-function mdsCachedAtText(result: LookupResult | null, hasLookup: boolean) {
+function mdsCheckedAtText(result: LookupResult | null, hasLookup: boolean) {
   if (!hasLookup) return m.mds_placeholder();
 
-  return formatDateTime(result?.cachedAt) || m.not_reported();
+  return formatDateTime(result?.checkedAt) || m.not_reported();
 }
 
 function mdsText(input: TextLike, available: boolean) {
@@ -282,7 +302,11 @@ function externalUrl(input: string | null | undefined) {
 }
 
 function hasAaguid(rawAaguid: TextLike, formattedAaguid: string) {
-  return textValue(rawAaguid, "").trim().length > 0 && formattedAaguid !== m.not_reported();
+  return (
+    textValue(rawAaguid, "").trim().length > 0 &&
+    formattedAaguid !== m.not_reported() &&
+    formattedAaguid !== "00000000-0000-0000-0000-000000000000"
+  );
 }
 
 function statusTone(input: string): OverviewHeroFactTone {

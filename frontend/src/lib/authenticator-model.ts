@@ -1,6 +1,9 @@
 import type { Failure } from "../../bindings/github.com/telesma-app/kit/model/failure";
 import type { SelectionID } from "../../bindings/telesma/service";
-import type { DeviceReport } from "../../bindings/github.com/telesma-app/kit/model/report";
+import type {
+  EndpointReport,
+  DeviceReport,
+} from "../../bindings/github.com/telesma-app/kit/model/report";
 
 export type AuthenticatorState = "idle" | "opening" | "ready" | "error";
 
@@ -10,16 +13,12 @@ export type AuthenticatorStatus = {
   error?: Failure | null;
 };
 
-export function selectorFromDevice(device: DeviceReport | null | undefined) {
-  return device?.attachment.id ?? "";
-}
-
 export function reportForSelector(devices: DeviceReport[], selector: string) {
   const requestedSelector = selector.trim();
 
   if (!requestedSelector) return null;
 
-  return devices.find((device) => device.attachment.id === requestedSelector) ?? null;
+  return devices.find((device) => device.id === requestedSelector) ?? null;
 }
 
 export function idleAuthenticatorStatus(

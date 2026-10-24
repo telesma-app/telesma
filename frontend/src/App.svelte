@@ -16,7 +16,9 @@
   import {
     authenticatorStatus,
     devices,
+    endpoints,
     selectedDevice,
+    selectedDeviceEndpoints,
     selectedSelector,
     shutdownWorkbench,
   } from "$lib/features/authenticator";
@@ -89,6 +91,7 @@
     buildSidebarPresentation({
       activeScreen: $activeScreen,
       devices: $devices,
+      endpoints: $endpoints,
       selectedSelector: $selectedSelector,
       busy: refreshing || $authenticatorStatus.state === "opening",
     }),
@@ -98,6 +101,7 @@
     buildShellStatusPresentation({
       authenticatorStatus: $authenticatorStatus,
       selectedDevice: $selectedDevice,
+      endpoints: $selectedDeviceEndpoints,
       statusBar: $statusBar,
     }),
   );
@@ -243,10 +247,14 @@
                   <Settings />
                 {:else if noDevices}
                   <NoAuthenticatorState screenLabel={sidebarPresentation.activeScreenLabel} />
+                {:else if $activeScreen === "overview"}
+                  <Overview />
                 {:else if opening}
                   <EmptyState
                     title={m.authenticator_opening()}
-                    message={$selectedDevice ? deviceName($selectedDevice) : ""}
+                    message={$selectedDevice
+                      ? deviceName($selectedDevice, $selectedDeviceEndpoints)
+                      : ""}
                     variant="workspace"
                   />
                 {:else if sessionUnavailable}

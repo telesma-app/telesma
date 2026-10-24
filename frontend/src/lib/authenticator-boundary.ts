@@ -37,7 +37,6 @@ function clearAuthenticator(error: Failure | null | undefined) {
 
     return {
       ...session,
-      selectedAttachmentId: "",
       authenticator: !error
         ? { ...rest, state: "idle" }
         : {

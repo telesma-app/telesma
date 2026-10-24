@@ -25,13 +25,14 @@ export enum Capability {
 };
 
 /**
- * DeviceInfo is returned by Yubico's GET DEVICE INFORMATION command.
- * UnknownFields preserves tags introduced by newer firmware.
+ * DeviceInfo contains reported management values; nil pointers mark absent TLVs.
+ * RawFields owns a copy of every tag's last value. Parsing applies no firmware
+ * corrections or model inference.
  */
 export class DeviceInfo {
     "supportedUSBCapabilities": Capability;
-    "serial"?: number | null;
-    "enabledUSBCapabilities": Capability;
+    "serialNumber"?: number | null;
+    "enabledUSBCapabilities"?: Capability | null;
     "formFactor": FormFactor;
     "isFIPS": boolean;
     "isSecurityKey": boolean;
@@ -42,24 +43,21 @@ export class DeviceInfo {
     "deviceFlags": number;
     "locked": boolean;
     "partNumber"?: string | null;
-    "fipsCapable": Capability;
-    "fipsApproved": Capability;
-    "pinComplexity": boolean;
-    "nfcRestricted": boolean;
-    "resetBlocked": Capability;
+    "fipsCapable"?: FIPSCapability | null;
+    "fipsApproved"?: FIPSCapability | null;
+    "pinComplexity"?: boolean | null;
+    "nfcRestricted"?: boolean | null;
+    "resetBlocked"?: Capability | null;
     "fpsVersion"?: FirmwareVersion | null;
     "stmVersion"?: FirmwareVersion | null;
     "supportedNFCCapabilities"?: Capability | null;
     "enabledNFCCapabilities"?: Capability | null;
-    "unknownFields": { [_ in `${number}`]?: string };
+    "rawFields": { [_ in `${number}`]?: string };
 
     /** Creates a new DeviceInfo instance. */
     constructor($$source: Partial<DeviceInfo> = {}) {
         if (!("supportedUSBCapabilities" in $$source)) {
             this["supportedUSBCapabilities"] = Capability.$zero;
-        }
-        if (!("enabledUSBCapabilities" in $$source)) {
-            this["enabledUSBCapabilities"] = Capability.$zero;
         }
         if (!("formFactor" in $$source)) {
             this["formFactor"] = FormFactor.$zero;
@@ -85,23 +83,8 @@ export class DeviceInfo {
         if (!("locked" in $$source)) {
             this["locked"] = false;
         }
-        if (!("fipsCapable" in $$source)) {
-            this["fipsCapable"] = Capability.$zero;
-        }
-        if (!("fipsApproved" in $$source)) {
-            this["fipsApproved"] = Capability.$zero;
-        }
-        if (!("pinComplexity" in $$source)) {
-            this["pinComplexity"] = false;
-        }
-        if (!("nfcRestricted" in $$source)) {
-            this["nfcRestricted"] = false;
-        }
-        if (!("resetBlocked" in $$source)) {
-            this["resetBlocked"] = Capability.$zero;
-        }
-        if (!("unknownFields" in $$source)) {
-            this["unknownFields"] = {};
+        if (!("rawFields" in $$source)) {
+            this["rawFields"] = {};
         }
 
         Object.assign(this, $$source);
@@ -129,12 +112,29 @@ export class DeviceInfo {
         if ("stmVersion" in $$parsedSource) {
             $$parsedSource["stmVersion"] = $$createField19_0($$parsedSource["stmVersion"]);
         }
-        if ("unknownFields" in $$parsedSource) {
-            $$parsedSource["unknownFields"] = $$createField22_0($$parsedSource["unknownFields"]);
+        if ("rawFields" in $$parsedSource) {
+            $$parsedSource["rawFields"] = $$createField22_0($$parsedSource["rawFields"]);
         }
         return new DeviceInfo($$parsedSource as Partial<DeviceInfo>);
     }
 }
+
+/**
+ * FIPSCapability is the bitmap used by the FIPS capable and approved TLVs.
+ * Its bit positions differ from Capability. Unknown bits are preserved.
+ */
+export enum FIPSCapability {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = 0,
+
+    FIPSCapabilityCTAP2 = 1,
+    FIPSCapabilityPIV = 2,
+    FIPSCapabilityOpenPGP = 4,
+    FIPSCapabilityOATH = 8,
+    FIPSCapabilityHSMAuth = 16,
+};
 
 /**
  * FirmwareVersion is the major.minor.build version reported by the device.
@@ -202,13 +202,13 @@ export enum ReleaseType {
 };
 
 /**
- * VersionQualifier contains the behavioral firmware version reported by
- * development firmware.
+ * VersionQualifier contains the required version, release type and iteration TLVs.
  */
 export class VersionQualifier {
     "version": FirmwareVersion;
     "releaseType": ReleaseType;
     "iteration": number;
+    "rawFields": { [_ in `${number}`]?: string };
 
     /** Creates a new VersionQualifier instance. */
     constructor($$source: Partial<VersionQualifier> = {}) {
@@ -221,6 +221,9 @@ export class VersionQualifier {
         if (!("iteration" in $$source)) {
             this["iteration"] = 0;
         }
+        if (!("rawFields" in $$source)) {
+            this["rawFields"] = {};
+        }
 
         Object.assign(this, $$source);
     }
@@ -230,9 +233,13 @@ export class VersionQualifier {
      */
     static createFrom($$source: any = {}): VersionQualifier {
         const $$createField0_0 = $$createType0;
+        const $$createField3_0 = $$createType4;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("version" in $$parsedSource) {
             $$parsedSource["version"] = $$createField0_0($$parsedSource["version"]);
+        }
+        if ("rawFields" in $$parsedSource) {
+            $$parsedSource["rawFields"] = $$createField3_0($$parsedSource["rawFields"]);
         }
         return new VersionQualifier($$parsedSource as Partial<VersionQualifier>);
     }

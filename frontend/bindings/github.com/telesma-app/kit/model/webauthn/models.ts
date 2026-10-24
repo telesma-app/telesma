@@ -462,14 +462,14 @@ export class GetAssertionPRFOutput {
 }
 
 export class GetAssertionPreview {
-    "device": report$0.DeviceReport;
+    "device": report$0.EndpointReport;
     "input": GetAssertionInput;
     "warnings"?: safety$0.Warning[];
 
     /** Creates a new GetAssertionPreview instance. */
     constructor($$source: Partial<GetAssertionPreview> = {}) {
         if (!("device" in $$source)) {
-            this["device"] = (new report$0.DeviceReport());
+            this["device"] = (new report$0.EndpointReport());
         }
         if (!("input" in $$source)) {
             this["input"] = (new GetAssertionInput());
@@ -913,14 +913,14 @@ export class MakeCredentialPRFOutput {
 }
 
 export class MakeCredentialPreview {
-    "device": report$0.DeviceReport;
+    "device": report$0.EndpointReport;
     "input": MakeCredentialInput;
     "warnings"?: safety$0.Warning[];
 
     /** Creates a new MakeCredentialPreview instance. */
     constructor($$source: Partial<MakeCredentialPreview> = {}) {
         if (!("device" in $$source)) {
-            this["device"] = (new report$0.DeviceReport());
+            this["device"] = (new report$0.EndpointReport());
         }
         if (!("input" in $$source)) {
             this["input"] = (new MakeCredentialInput());
@@ -1482,7 +1482,7 @@ const $$createType24 = GetAssertionPreview.createFrom;
 const $$createType25 = GetAssertionResult.createFrom;
 const $$createType26 = $Create.Nullable($$createType25);
 const $$createType27 = webauthn$0.AuthenticationExtensionsPRFValues.createFrom;
-const $$createType28 = report$0.DeviceReport.createFrom;
+const $$createType28 = report$0.EndpointReport.createFrom;
 const $$createType29 = GetAssertionInput.createFrom;
 const $$createType30 = safety$0.Warning.createFrom;
 const $$createType31 = $Create.Array($$createType30);

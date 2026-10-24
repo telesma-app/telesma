@@ -44,10 +44,6 @@ func NewService() *Service {
 	return &Service{path: path, pathErr: err}
 }
 
-func newService(path string) *Service {
-	return &Service{path: path}
-}
-
 func (s *Service) ServiceName() string {
 	return "ApplicationService"
 }
@@ -79,7 +75,6 @@ func validate(config ApplicationConfig) error {
 
 func configPath() (string, error) {
 	configDir, err := os.UserConfigDir()
-
 	if err != nil {
 		return "", err
 	}
@@ -106,7 +101,6 @@ func (s *Service) load() (ApplicationConfigSnapshot, error) {
 	}
 
 	config, err := decode(data)
-
 	if err != nil {
 		return ApplicationConfigSnapshot{}, fmt.Errorf("decode application config: %w", err)
 	}
@@ -127,7 +121,6 @@ func (s *Service) save(config ApplicationConfig) error {
 	}
 
 	data, err := toml.Marshal(config)
-
 	if err != nil {
 		return err
 	}

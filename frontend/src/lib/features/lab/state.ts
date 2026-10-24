@@ -15,6 +15,7 @@ import type {
   MakeCredentialPreview,
   MakeCredentialResult,
   MakeCredentialVerification,
+  PreviewSignARKGP256Derivation,
 } from "../../../../bindings/github.com/telesma-app/kit/model/webauthn";
 import type { AttestationTrustAssessment } from "../../../../bindings/github.com/telesma-app/mds/model";
 import type {
@@ -198,10 +199,7 @@ export type LabPendingHandoff = {
   previewSign?: {
     algorithm: Algorithm;
     keyHandleHex: string;
-    arkgP256?: {
-      additionalArgumentsHex: string;
-      verificationKeyCOSEHex: string;
-    };
+    arkgP256?: PreviewSignARKGP256Derivation;
   };
 };
 

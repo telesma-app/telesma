@@ -1,7 +1,7 @@
 import type { Info as InspectInfo } from "../../bindings/github.com/telesma-app/kit/model/inspect";
 import type { BioSensorReport } from "../../bindings/github.com/telesma-app/kit/model/config";
 import type { LookupResult } from "../../bindings/github.com/telesma-app/mds/model";
-import type { DeviceReport } from "../../bindings/github.com/telesma-app/kit/model/report";
+import type { EndpointReport } from "../../bindings/github.com/telesma-app/kit/model/report";
 
 export type OverviewRowStatus =
   | "supported"
@@ -103,12 +103,14 @@ export type OverviewHeroPresentation = {
   subtitle: string;
   serialNumber: string;
   versionBadge: string;
+  iconSrc: string;
   aaguid: string;
   aaguidAvailable: boolean;
-  iconSrc: string;
   mdsState: OverviewMDSState;
   mdsStateLabel: string;
   mdsDescription: string;
+  mdsName: string;
+  mdsRefreshMessage: string;
   mdsStatusFacts: OverviewHeroFact[];
   mdsBlobFacts: OverviewHeroFact[];
 };
@@ -153,12 +155,13 @@ export type OverviewStandardPresentation = {
 
 export type OverviewContext = {
   info?: InspectInfo | null;
-  device?: DeviceReport | null;
+  device?: EndpointReport | null;
   bioSensor?: BioSensorReport | null;
   mds?: LookupResult | null;
 };
 
 export type OverviewHeroContext = OverviewContext & {
+  endpoints?: EndpointReport[];
   mdsLoading?: boolean;
   mdsError?: string | null;
   authenticatorLabel?: string;

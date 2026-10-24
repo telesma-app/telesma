@@ -72,19 +72,12 @@ import {
 import { completeOperation, runOperation } from "$lib/operation-lifecycle.js";
 import { setStatusOutcome } from "$lib/workbench-state.js";
 
-function largeBlobsAutoLoadKey() {
-  const selector = get(selectedSelector).trim();
-  const selectionId = get(authenticatorStatus).selectionId || "";
-
-  return selector && selectionId ? `${selector}:${selectionId}` : "";
-}
-
 function shouldAutoLoadLargeBlobs() {
   const inventory = get(largeBlobsInventoryState);
 
   return (
     get(activeScreen) === "large-blobs" &&
-    Boolean(largeBlobsAutoLoadKey()) &&
+    Boolean(get(selectedSelector).trim() && get(authenticatorStatus).selectionId) &&
     !inventory.report &&
     inventory.phase !== "loading" &&
     inventory.phase !== "refreshing" &&

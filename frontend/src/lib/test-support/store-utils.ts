@@ -1,10 +1,10 @@
-import type { LookupResult } from "../../../bindings/github.com/telesma-app/mds/model";
+import { testTopology } from "../../test/device.js";
 import { Code, type Failure } from "../../../bindings/github.com/telesma-app/kit/model/failure";
-import type { DeviceReport } from "../../../bindings/github.com/telesma-app/kit/model/report";
+import type { EndpointReport } from "../../../bindings/github.com/telesma-app/kit/model/report";
 import type {
   BioSensorEnvelope,
   CredentialsEnvelope,
-  InspectEnvelope,
+  GetInfoEnvelope,
   InteractionPrompt,
   LargeBlobListEnvelope,
 } from "../../../bindings/telesma/service";
@@ -24,7 +24,6 @@ import {
   errorLoadState,
   idleLoadState,
   overviewBioSensor,
-  overviewMDS,
   readyLoadState,
   resetOverviewDeviceState,
 } from "$lib/features/overview/state.js";
@@ -37,7 +36,7 @@ import {
 import { credentialsReport } from "$lib/ctapkit-results.js";
 import {
   authenticatorSession,
-  authenticatorInspection,
+  authenticatorGetInfo,
   resetAuthenticatorStateForTest,
 } from "$lib/features/authenticator/state.js";
 import { resetSecurityDeviceState } from "$lib/features/security/state.js";
@@ -62,62 +61,51 @@ export function seedActiveScreenForTest(screen: ActiveScreen) {
   activeScreen.set(screen);
 }
 
-export function seedDevicesForTest(items: DeviceReport[]) {
-  authenticatorSession.update((session) => ({ ...session, devices: items }));
+export function seedDevicesForTest(items: EndpointReport[]) {
+  authenticatorSession.update((session) => ({ ...session, ...testTopology(items) }));
 }
 
 export function seedSelectionForTest(
   selector: string,
-  device: DeviceReport | null,
+  device: EndpointReport | null,
   authenticator: AuthenticatorStatus,
 ) {
-  authenticatorSession.update((session) => ({
-    devices: device
-      ? session.devices.some((candidate) => candidate.attachment.id === device.attachment.id)
-        ? session.devices.map((candidate) =>
-            candidate.attachment.id === device.attachment.id ? device : candidate,
-          )
-        : [...session.devices, device]
-      : session.devices,
-    selectedAttachmentId: selector,
-    authenticator,
-  }));
+  authenticatorSession.update((session) => {
+    const endpoints = device
+      ? [
+          ...session.endpoints.filter(
+            (candidate) => candidate.attachment.id !== device.attachment.id,
+          ),
+          device,
+        ]
+      : session.endpoints;
+    return {
+      ...testTopology(endpoints),
+      selectedDeviceId: selector,
+      selectedAttachmentId: selector,
+      authenticator,
+    };
+  });
 }
 
 export function seedPendingInteractionForTest(prompt: InteractionPrompt | null) {
   pendingInteraction.set(prompt);
 }
 
-export function seedOverviewEnvelopeForTest(envelope: InspectEnvelope | null) {
+export function seedGetInfoEnvelopeForTest(envelope: GetInfoEnvelope | null) {
   if (!envelope) {
-    authenticatorInspection.set(idleLoadState());
+    authenticatorGetInfo.set(idleLoadState());
 
     return;
   }
 
-  authenticatorInspection.set(
+  authenticatorGetInfo.set(
     envelope.error ? errorLoadState(envelope.error, envelope) : readyLoadState(envelope),
   );
 }
 
 export function seedOverviewBioSensorEnvelopeForTest(envelope: BioSensorEnvelope | null) {
   overviewBioSensor.set(envelope ? readyLoadState(envelope) : idleLoadState());
-}
-
-export function seedOverviewMDSForTest(data: LookupResult | null, error?: Failure | null) {
-  if (error) {
-    overviewMDS.set({ state: "error", data, error });
-
-    return;
-  }
-
-  if (!data) {
-    overviewMDS.set(idleLoadState());
-
-    return;
-  }
-
-  overviewMDS.set(readyLoadState(data));
 }
 
 export function seedPasskeysEnvelopeForTest(

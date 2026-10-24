@@ -1,10 +1,10 @@
 <script lang="ts">
   import { tick } from "svelte";
 
-  import type { DeviceReport } from "../../../../bindings/github.com/telesma-app/kit/model/report";
-  import type { InspectEnvelope } from "../../../../bindings/telesma/service";
+  import type { EndpointReport } from "../../../../bindings/github.com/telesma-app/kit/model/report";
+  import type { GetInfoEnvelope } from "../../../../bindings/telesma/service";
 
-  import { inspectResult } from "$lib/ctapkit-results";
+  import { getInfoResult } from "$lib/ctapkit-results";
   import type { LabState, MakeCredentialDraft } from "$lib/features/lab/state";
   import { validateMakeCredentialDraft } from "$lib/lab-input";
   import type { LoadState } from "$lib/load-state";
@@ -19,8 +19,8 @@
 
   type Props = {
     lab: LabState;
-    inspection: LoadState<InspectEnvelope>;
-    device: DeviceReport;
+    inspection: LoadState<GetInfoEnvelope>;
+    device: EndpointReport;
     disabled?: boolean;
     fillDemoDisabled?: boolean;
     onDraftChange: (patch: Partial<MakeCredentialDraft>) => void;
@@ -76,7 +76,7 @@
     return null;
   });
 
-  let maxCredBlobLength = $derived(inspectResult(inspection.data)?.info.maxCredBlobLength);
+  let maxCredBlobLength = $derived(getInfoResult(inspection.data)?.maxCredBlobLength);
 
   let validation = $derived(validateMakeCredentialDraft(draft, maxCredBlobLength));
 

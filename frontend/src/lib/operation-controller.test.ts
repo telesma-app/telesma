@@ -1,10 +1,12 @@
+import { DescriptorState } from "../../bindings/github.com/telesma-app/kit/model/report";
+import { USBReport } from "../../bindings/github.com/telesma-app/kit/model/report";
 import { get } from "svelte/store";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { InteractionKind, OperationStage } from "../../bindings/github.com/telesma-app/kit/model";
 import { Kind as OperationKind } from "../../bindings/github.com/telesma-app/kit/model/operation";
 import { Code } from "../../bindings/github.com/telesma-app/kit/model/failure";
-import { DeviceReport } from "../../bindings/github.com/telesma-app/kit/model/report";
+import { EndpointReport } from "../../bindings/github.com/telesma-app/kit/model/report";
 import type {
   CredentialsEnvelope,
   InteractionPrompt,
@@ -40,11 +42,15 @@ const serviceMocks = vi.hoisted(() => ({
 
 vi.mock("../../bindings/telesma/service/service", () => serviceMocks);
 
-const token = new DeviceReport({
+const token = new EndpointReport({
   attachment: {
     id: "token-1",
     transport: Mode.ModeHID,
-    usb: { product: "Test key", vendorId: 1, productId: 2 },
+    usb: new USBReport({
+      product: { state: DescriptorState.DescriptorRead, value: "Test key" },
+      vendorId: { state: DescriptorState.DescriptorRead, value: 1 },
+      productId: { state: DescriptorState.DescriptorRead, value: 2 },
+    }),
   },
 });
 

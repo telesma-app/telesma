@@ -10,7 +10,11 @@ import { pendingInteraction } from "$lib/features/interaction/state.js";
 import { applyOperationAuthenticatorBoundary } from "$lib/authenticator-boundary.js";
 import { failureForCode } from "$lib/test-support/failure.js";
 import { seedSelectionForTest } from "$lib/test-support/store-utils.js";
-import { authenticatorInspection, authenticatorStatus } from "$lib/features/authenticator/state.js";
+import {
+  authenticatorGetInfo,
+  authenticatorStatus,
+  selectedSelector,
+} from "$lib/features/authenticator/state.js";
 import { readyLoadState } from "$lib/load-state.js";
 
 function envelope(authenticatorClosed: boolean, code: Code): CredentialsEnvelope {
@@ -40,11 +44,12 @@ describe("operation authenticator boundary", () => {
   it("clears a closed authenticator independently of the failure category", () => {
     const response = envelope(true, Code.CodeOperationCanceled);
 
-    authenticatorInspection.set(readyLoadState(response as never));
+    authenticatorGetInfo.set(readyLoadState(response as never));
     applyOperationAuthenticatorBoundary(response);
 
     expect(get(authenticatorStatus)).toEqual({ state: "error", error: response.error });
-    expect(get(authenticatorInspection).state).toBe("idle");
+    expect(get(authenticatorGetInfo).state).toBe("idle");
+    expect(get(selectedSelector)).toBe("token-1");
     expect(get(pendingInteraction)).toBeNull();
   });
 

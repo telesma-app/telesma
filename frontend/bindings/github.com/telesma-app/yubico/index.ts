@@ -4,6 +4,7 @@
 export {
     Capability,
     DeviceInfo,
+    FIPSCapability,
     FirmwareVersion,
     FormFactor,
     ReleaseType,

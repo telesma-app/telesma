@@ -4,12 +4,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Code } from "../../bindings/github.com/telesma-app/kit/model/failure";
 import { Kind as OperationKind } from "../../bindings/github.com/telesma-app/kit/model/operation";
 import { Mode } from "../../bindings/github.com/telesma-app/kit/transport";
+import { DeviceReport } from "../../bindings/github.com/telesma-app/kit/model/report";
 import type {
   AuthenticatorSessionSnapshot,
   DiscoveryChangedEnvelope,
 } from "../../bindings/telesma/service";
 
 import { api } from "$lib/api.js";
+import { m } from "../paraglide/messages.js";
 import {
   bootstrapAuthenticatorSession,
   selectAuthenticatorSession,
@@ -30,20 +32,29 @@ import {
   seedSelectionForTest,
 } from "$lib/test-support/store-utils.js";
 import { authenticatorStatus, devices, selectedSelector } from "$lib/test-support/stores.js";
-import { testHIDDevice, testSmartCardDevice } from "../test/device.js";
+import { testHIDDevice, testSmartCardDevice, testTopology } from "../test/device.js";
 
-function envelope(snapshot: AuthenticatorSessionSnapshot): DiscoveryChangedEnvelope {
-  return { snapshot };
+function envelope(
+  snapshot: Omit<AuthenticatorSessionSnapshot, "devices" | "selectedDeviceId">,
+): DiscoveryChangedEnvelope {
+  return {
+    snapshot: {
+      ...snapshot,
+      ...testTopology(snapshot.endpoints),
+      selectedDeviceId: snapshot.selectedAttachmentId,
+    },
+  };
 }
 
 describe("discovery controller", () => {
   beforeEach(() => {
     resetAppStateForTest();
     vi.restoreAllMocks();
-    vi.spyOn(api, "inspect").mockResolvedValue({
+    vi.spyOn(api, "readSources").mockRejectedValue(new Error("unavailable in this test"));
+    vi.spyOn(api, "getInfo").mockResolvedValue({
       operationId: "inspect-1",
       selectionId: "selection-1",
-      kind: OperationKind.Inspect,
+      kind: OperationKind.GetInfo,
       authenticatorClosed: false,
       error: failureForCode(Code.CodeTransportFailure),
     });
@@ -65,12 +76,17 @@ describe("discovery controller", () => {
 
     await handleDiscoveryChanged(
       envelope({
-        devices: [first, second],
-        selection: { id: "selection-2", attachmentId: second.attachment.id },
+        endpoints: [first, second],
+        selectedAttachmentId: second.attachment.id,
+        selection: {
+          id: "selection-2",
+          attachmentId: second.attachment.id,
+          deviceId: second.attachment.id,
+        },
       }),
     );
 
-    expect(get(devices)).toEqual([first, second]);
+    expect(get(devices)).toEqual(testTopology([first, second]).devices);
     expect(get(selectedSelector)).toBe(second.attachment.id);
     expect(get(authenticatorStatus)).toEqual({ state: "ready", selectionId: "selection-2" });
     expect(get(labState).makeDraft.rpID).toBe("example.com");
@@ -90,8 +106,13 @@ describe("discovery controller", () => {
 
     await handleDiscoveryChanged(
       envelope({
-        devices: [device],
-        selection: { id: "selection-1", attachmentId: device.attachment.id },
+        endpoints: [device],
+        selectedAttachmentId: device.attachment.id,
+        selection: {
+          id: "selection-1",
+          attachmentId: device.attachment.id,
+          deviceId: device.attachment.id,
+        },
       }),
     );
     await bootstrap;
@@ -114,36 +135,164 @@ describe("discovery controller", () => {
       getDraft: { ...state.getDraft, rpID: "kept.example" },
     }));
 
+    statusBar.update((state) => ({
+      ...state,
+      lastOutcome: { tone: "success", title: "User action completed", message: "Preserve this" },
+    }));
     await handleDiscoveryChanged(
       envelope({
-        devices: [updated],
-        selection: { id: "selection-1", attachmentId: updated.attachment.id },
+        endpoints: [updated],
+        selectedAttachmentId: updated.attachment.id,
+        selection: {
+          id: "selection-1",
+          attachmentId: updated.attachment.id,
+          deviceId: updated.attachment.id,
+        },
       }),
     );
 
-    expect(get(devices)).toEqual([updated]);
+    expect(api.readSources).not.toHaveBeenCalled();
+    expect(get(devices)).toEqual(testTopology([updated]).devices);
+    expect(get(statusBar).lastOutcome?.title).toBe("User action completed");
     expect(get(labState).getDraft.rpID).toBe("kept.example");
-    expect(api.inspect).not.toHaveBeenCalled();
+    expect(api.getInfo).not.toHaveBeenCalled();
   });
+
+  it.each([false, true])(
+    "keeps the selected runtime when physical identity changes (sibling=%s)",
+    async (withSibling) => {
+      const device = testHIDDevice("hid-1", "Token");
+      const endpoints = withSibling ? [device, testSmartCardDevice("card-1")] : [device];
+      authenticatorSession.set({
+        devices: endpoints.map(
+          (endpoint) =>
+            new DeviceReport({
+              id: `endpoint:${endpoint.attachment.id}`,
+              endpointIds: [endpoint.attachment.id],
+            }),
+        ),
+        endpoints,
+        selectedDeviceId: "endpoint:hid-1",
+        selectedAttachmentId: "hid-1",
+        authenticator: { state: "ready", selectionId: "selection-1" },
+      });
+      labState.update((state) => ({
+        ...state,
+        getDraft: { ...state.getDraft, rpID: "kept.example" },
+      }));
+
+      await handleDiscoveryChanged({
+        snapshot: {
+          devices: [
+            new DeviceReport({
+              id: "yubico:1234",
+              endpointIds: endpoints.map((endpoint) => endpoint.attachment.id),
+            }),
+          ],
+          endpoints,
+          selectedDeviceId: "yubico:1234",
+          selectedAttachmentId: "hid-1",
+          selection: { id: "selection-1", deviceId: "yubico:1234", attachmentId: "hid-1" },
+        },
+      });
+
+      expect(get(selectedSelector)).toBe("yubico:1234");
+      expect(get(authenticatorStatus)).toEqual({ state: "ready", selectionId: "selection-1" });
+      expect(get(labState).getDraft.rpID).toBe("kept.example");
+      expect(get(statusBar).lastOutcome).toMatchObject({
+        tone: "info",
+        title: m.authenticator_list_updated(),
+      });
+      expect(api.readSources).not.toHaveBeenCalled();
+      expect(api.getInfo).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([false, true])(
+    "reports selected endpoint removal and resets its state (fallback=%s)",
+    async (withFallback) => {
+      const original = testHIDDevice("token-1", "Original");
+      const replacement = testHIDDevice("token-2", "Replacement");
+      seedSelectionForTest(original.attachment.id, original, {
+        state: "ready",
+        selectionId: "selection-1",
+      });
+      labState.update((state) => ({
+        ...state,
+        getDraft: { ...state.getDraft, rpID: "discard.example" },
+      }));
+      vi.mocked(api.readSources).mockResolvedValue(undefined);
+      vi.spyOn(api, "refreshMetadata").mockResolvedValue(undefined);
+
+      await handleDiscoveryChanged(
+        envelope({
+          endpoints: withFallback ? [replacement] : [],
+          selectedAttachmentId: withFallback ? replacement.attachment.id : "",
+          ...(withFallback
+            ? {
+                selection: {
+                  id: "selection-2",
+                  deviceId: replacement.attachment.id,
+                  attachmentId: replacement.attachment.id,
+                },
+              }
+            : {}),
+        }),
+      );
+
+      expect(get(labState).getDraft.rpID).toBe("example.com");
+      expect(get(statusBar).lastOutcome).toMatchObject({
+        tone: "warning",
+        title: m.selected_authenticator_disconnected(),
+      });
+      expect(get(selectedSelector)).toBe(withFallback ? replacement.attachment.id : "");
+      expect(api.readSources).toHaveBeenCalledTimes(withFallback ? 1 : 0);
+    },
+  );
 
   it("loads the active screen when a local opening state becomes ready", async () => {
     const device = testHIDDevice("token-1", "Token");
 
     seedDevicesForTest([device]);
     authenticatorSession.set({
-      devices: [device],
+      ...testTopology([device]),
+      selectedDeviceId: device.attachment.id,
       selectedAttachmentId: device.attachment.id,
       authenticator: { state: "opening" },
     });
 
     await handleDiscoveryChanged(
       envelope({
-        devices: [device],
-        selection: { id: "selection-1", attachmentId: device.attachment.id },
+        endpoints: [device],
+        selectedAttachmentId: device.attachment.id,
+        selection: {
+          id: "selection-1",
+          attachmentId: device.attachment.id,
+          deviceId: device.attachment.id,
+        },
       }),
     );
 
-    expect(api.inspect).toHaveBeenCalledOnce();
+    expect(api.readSources).toHaveBeenCalledOnce();
+  });
+
+  it("clears runtime state on handle loss while retaining the viewed attachment", async () => {
+    const device = testHIDDevice();
+    seedSelectionForTest(device.attachment.id, device, {
+      state: "ready",
+      selectionId: "session-1",
+    });
+    labState.update((state) => ({
+      ...state,
+      makeDraft: { ...state.makeDraft, rpID: "discard.example" },
+    }));
+    await handleDiscoveryChanged(
+      envelope({ endpoints: [device], selectedAttachmentId: device.attachment.id }),
+    );
+    expect(get(selectedSelector)).toBe(device.attachment.id);
+    expect(get(authenticatorStatus).state).toBe("idle");
+    expect(get(labState).makeDraft.rpID).toBe("example.com");
+    expect(api.readSources).not.toHaveBeenCalled();
   });
 
   it("clears device state when the manager reopens the same attachment", async () => {
@@ -161,8 +310,13 @@ describe("discovery controller", () => {
 
     await handleDiscoveryChanged(
       envelope({
-        devices: [device],
-        selection: { id: "selection-2", attachmentId: device.attachment.id },
+        endpoints: [device],
+        selectedAttachmentId: device.attachment.id,
+        selection: {
+          id: "selection-2",
+          attachmentId: device.attachment.id,
+          deviceId: device.attachment.id,
+        },
       }),
     );
 
@@ -180,22 +334,34 @@ describe("discovery controller", () => {
       selectionId: "selection-1",
     });
     void offerOperationRecovery("Make credential", failureForCode(Code.CodeUserPresenceRequired));
-    vi.spyOn(api, "setSelection").mockResolvedValue(undefined);
+    vi.spyOn(api, "setEndpointSelection").mockResolvedValue(undefined);
 
     await handleDiscoveryChanged(
       envelope({
-        devices: [hid, replacement],
-        selection: { id: "selection-2", attachmentId: hid.attachment.id },
+        endpoints: [hid, replacement],
+        selectedAttachmentId: hid.attachment.id,
+        selection: {
+          id: "selection-2",
+          attachmentId: hid.attachment.id,
+          deviceId: hid.attachment.id,
+        },
       }),
     );
 
-    expect(api.setSelection).toHaveBeenCalledWith({ attachmentId: replacement.attachment.id });
+    expect(api.setEndpointSelection).toHaveBeenCalledWith({
+      attachmentId: replacement.attachment.id,
+    });
     expect(get(selectedSelector)).toBe(hid.attachment.id);
 
     await handleDiscoveryChanged(
       envelope({
-        devices: [hid, replacement],
-        selection: { id: "selection-3", attachmentId: replacement.attachment.id },
+        endpoints: [hid, replacement],
+        selectedAttachmentId: replacement.attachment.id,
+        selection: {
+          id: "selection-3",
+          attachmentId: replacement.attachment.id,
+          deviceId: replacement.attachment.id,
+        },
       }),
     );
 
@@ -205,10 +371,114 @@ describe("discovery controller", () => {
     cancelOperationRecovery();
   });
 
+  it.each([false, true])(
+    "selects the PCSC endpoint of a grouped device once after HID fallback (open fails=%s)",
+    async (openFails) => {
+      const hid = testHIDDevice("hid-1", "Key");
+      const card = testSmartCardDevice("card-1");
+      const deviceId = "yubico:1234";
+      seedSelectionForTest(card.attachment.id, card, {
+        state: "ready",
+        selectionId: "selection-card-original",
+      });
+      void offerOperationRecovery("Make credential", failureForCode(Code.CodeUserPresenceRequired));
+      vi.spyOn(api, "setEndpointSelection").mockResolvedValue(undefined);
+      vi.spyOn(api, "setSelection").mockResolvedValue(undefined);
+
+      const fallback: AuthenticatorSessionSnapshot = {
+        devices: [new DeviceReport({ id: deviceId, endpointIds: [hid.attachment.id] })],
+        endpoints: [hid],
+        selectedDeviceId: deviceId,
+        selectedAttachmentId: hid.attachment.id,
+        selection: { id: "selection-hid", deviceId, attachmentId: hid.attachment.id },
+      };
+      await handleDiscoveryChanged({ snapshot: fallback });
+
+      const reconnected: AuthenticatorSessionSnapshot = {
+        ...fallback,
+        devices: [
+          new DeviceReport({
+            id: deviceId,
+            endpointIds: [hid.attachment.id, card.attachment.id],
+          }),
+        ],
+        endpoints: [hid, card],
+      };
+      await handleDiscoveryChanged({ snapshot: reconnected });
+
+      expect(api.setEndpointSelection).toHaveBeenCalledExactlyOnceWith({
+        attachmentId: card.attachment.id,
+      });
+      expect(api.setSelection).not.toHaveBeenCalled();
+
+      await handleDiscoveryChanged({
+        snapshot: {
+          ...reconnected,
+          selectedAttachmentId: card.attachment.id,
+          selection: openFails
+            ? null
+            : { id: "selection-card-new", deviceId, attachmentId: card.attachment.id },
+          error: openFails ? failureForCode(Code.CodeTransportFailure) : null,
+        },
+      });
+
+      expect(api.setEndpointSelection).toHaveBeenCalledTimes(1);
+      expect(get(selectedSelector)).toBe(deviceId);
+      expect(get(operationRecovery)?.canRetry).toBe(!openFails);
+      cancelOperationRecovery();
+    },
+  );
+
+  it("waits for physical device publication before selecting a recovery card", async () => {
+    const original = testSmartCardDevice("card-1");
+    const replacement = testSmartCardDevice("card-2");
+    const hid = testHIDDevice("token-1", "HID");
+    seedSelectionForTest(original.attachment.id, original, {
+      state: "ready",
+      selectionId: "selection-1",
+    });
+    void offerOperationRecovery("Make credential", failureForCode(Code.CodeUserPresenceRequired));
+    vi.spyOn(api, "setEndpointSelection").mockResolvedValue(undefined);
+
+    await handleDiscoveryChanged({
+      snapshot: {
+        devices: testTopology([hid]).devices,
+        endpoints: [hid, replacement],
+        selectedDeviceId: hid.attachment.id,
+        selectedAttachmentId: hid.attachment.id,
+        selection: {
+          id: "selection-2",
+          deviceId: hid.attachment.id,
+          attachmentId: hid.attachment.id,
+        },
+      },
+    });
+
+    expect(api.setEndpointSelection).not.toHaveBeenCalled();
+    expect(get(operationRecovery)?.canRetry).toBe(false);
+
+    await handleDiscoveryChanged(
+      envelope({
+        endpoints: [hid, replacement],
+        selectedAttachmentId: hid.attachment.id,
+        selection: {
+          id: "selection-2",
+          deviceId: hid.attachment.id,
+          attachmentId: hid.attachment.id,
+        },
+      }),
+    );
+
+    expect(api.setEndpointSelection).toHaveBeenCalledExactlyOnceWith({
+      attachmentId: replacement.attachment.id,
+    });
+    cancelOperationRecovery();
+  });
+
   it("keeps a typed device-manager failure in the session", async () => {
     const error = failureForCode(Code.CodeTransportFailure);
 
-    await handleDiscoveryChanged(envelope({ devices: [], error }));
+    await handleDiscoveryChanged(envelope({ endpoints: [], selectedAttachmentId: "", error }));
 
     expect(get(authenticatorStatus)).toEqual({ state: "error", error });
   });
@@ -217,9 +487,11 @@ describe("discovery controller", () => {
     const device = testHIDDevice("token-1", "Unavailable token");
     const error = failureForCode(Code.CodeTransportFailure);
 
-    await handleDiscoveryChanged(envelope({ devices: [device], error }));
+    await handleDiscoveryChanged(
+      envelope({ endpoints: [device], selectedAttachmentId: "", error }),
+    );
 
-    expect(get(devices)).toEqual([device]);
+    expect(get(devices)).toEqual(testTopology([device]).devices);
     expect(get(selectedSelector)).toBe("");
     expect(get(authenticatorStatus)).toEqual({ state: "error", error });
   });
@@ -266,8 +538,13 @@ describe("discovery controller", () => {
 
     await handleDiscoveryChanged(
       envelope({
-        devices: [first, second],
-        selection: { id: "selection-2", attachmentId: first.attachment.id },
+        endpoints: [first, second],
+        selectedAttachmentId: first.attachment.id,
+        selection: {
+          id: "selection-2",
+          attachmentId: first.attachment.id,
+          deviceId: first.attachment.id,
+        },
         error,
       }),
     );
@@ -289,8 +566,13 @@ describe("discovery controller", () => {
     }));
     await handleDiscoveryChanged(
       envelope({
-        devices: [device],
-        selection: { id: "selection-1", attachmentId: device.attachment.id },
+        endpoints: [device],
+        selectedAttachmentId: device.attachment.id,
+        selection: {
+          id: "selection-1",
+          attachmentId: device.attachment.id,
+          deviceId: device.attachment.id,
+        },
         error,
       }),
     );

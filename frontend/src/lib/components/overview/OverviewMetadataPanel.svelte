@@ -86,10 +86,12 @@
   </Card.Header>
 
   <Card.Content class="mds-content">
-    <section class="aaguid-section">
-      <div class="aaguid-header cluster">
-        <span>{m.mds_aaguid()}</span>
-        {#if hero.aaguidAvailable}
+    {#if hero.mdsName}<p>{m.source_mds_description()}: {hero.mdsName}</p>{/if}
+    {#if hero.mdsRefreshMessage}<p role="status">{hero.mdsRefreshMessage}</p>{/if}
+    {#if hero.aaguidAvailable}
+      <section class="aaguid-section">
+        <div class="aaguid-header cluster">
+          <span>{m.mds_aaguid()}</span>
           <Button
             variant="ghost"
             size="icon-xs"
@@ -99,13 +101,20 @@
           >
             <Copy />
           </Button>
-        {/if}
-      </div>
-      <code title={hero.aaguid}>{hero.aaguid}</code>
-    </section>
+        </div>
+        <code title={hero.aaguid}>{hero.aaguid}</code>
+      </section>
+    {/if}
 
-    {@render factSection(m.mds_latest_status_report(), hero.mdsStatusFacts)}
-    {@render factSection(m.mds_metadata_blob(), hero.mdsBlobFacts)}
+    {@const statusFacts = hero.mdsStatusFacts.filter(
+      (fact) => !fact.placeholder && fact.value !== m.not_reported(),
+    )}
+    {#if statusFacts.length}{@render factSection(m.mds_latest_status_report(), statusFacts)}{/if}
+    {@const blobFacts = hero.mdsBlobFacts.filter(
+      (fact) => !fact.placeholder && fact.value !== m.not_reported(),
+    )}
+    {#if blobFacts.length}{@render factSection(m.mds_metadata_blob(), blobFacts)}{/if}
+    <p>{m.mds_device_authentication_scope()}</p>
   </Card.Content>
 </Card.Root>
 
@@ -210,7 +219,9 @@
     dd a span {
       overflow-wrap: anywhere;
     }
+  }
 
+  @layer exceptions {
     dd[data-tone="muted"] {
       color: var(--muted-foreground);
     }

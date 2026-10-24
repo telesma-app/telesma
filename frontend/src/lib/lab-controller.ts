@@ -23,7 +23,7 @@ import { api } from "$lib/api.js";
 import {
   getAssertionPreview,
   getAssertionResult,
-  inspectResult,
+  getInfoResult,
   makeCredentialPreview,
   makeCredentialResult,
 } from "$lib/ctapkit-results.js";
@@ -36,7 +36,7 @@ import {
 } from "$lib/features/lab/state.js";
 import { invalidateLargeBlobsInventory } from "$lib/features/largeblobs/state.js";
 import { invalidatePasskeysInventory } from "$lib/features/passkeys/state.js";
-import { authenticatorInspection } from "$lib/features/authenticator/state.js";
+import { authenticatorGetInfo } from "$lib/features/authenticator/state.js";
 import {
   buildClientDataJSON,
   buildGetAssertionRequest,
@@ -249,8 +249,7 @@ export async function previewLabMakeCredential(): Promise<boolean> {
   )
     return false;
 
-  const maxCredBlobLength = inspectResult(get(authenticatorInspection).data)?.info
-    .maxCredBlobLength;
+  const maxCredBlobLength = getInfoResult(get(authenticatorGetInfo).data)?.maxCredBlobLength;
   const validation = validateMakeCredentialDraft(current.makeDraft, maxCredBlobLength);
 
   if (!validation.valid) return false;
@@ -521,7 +520,7 @@ export function updateLabVerificationMaterial(material: CredentialVerificationMa
   const current = get(labState);
   const getDraft = {
     ...current.getDraft,
-    verificationMaterial: material.map((entry) => new CredentialVerificationMaterial(entry)),
+    verificationMaterial: material,
   };
 
   labState.set({

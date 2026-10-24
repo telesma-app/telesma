@@ -102,19 +102,17 @@ export async function runTypedOperationStage<E extends OperationEnvelope, TValue
   onSuccess,
   completion,
 }: RunTypedOperationStageOptions<E, TValue>): Promise<TypedOperationStageOutcome<E, TValue>> {
-  let runtimeOutcome: TypedOperationStageFailure<E> | null = null;
   const attempt = await runOperation({
     label,
     call,
     cardPresenceRecovery,
     onRuntimeFailure: (error) => {
-      runtimeOutcome = { ok: false, reason: "runtime-error", error };
-      onFailure(runtimeOutcome);
+      onFailure({ ok: false, reason: "runtime-error", error });
     },
   });
 
   if (!attempt.ok) {
-    return runtimeOutcome!;
+    return { ok: false, reason: "runtime-error", error: attempt.error };
   }
 
   const envelope = attempt.envelope;

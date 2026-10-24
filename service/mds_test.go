@@ -1,18 +1,24 @@
 package service
 
 import (
-	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"testing"
+	"uuid"
 
 	"github.com/telesma-app/kit/model/failure"
-	"github.com/telesma-app/mds"
 )
 
-func TestNormalizeMDSErrorPreservesHTTPStatus(t *testing.T) {
-	err := normalizeMDSError(fmt.Errorf("lookup: %w", &mds.HTTPStatusError{
-		StatusCode: http.StatusTooManyRequests,
+func TestLookupMDSPreservesHTTPStatus(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusTooManyRequests)
 	}))
+	defer server.Close()
+
+	service := &Service{}
+	_, err := service.LookupMDS(t.Context(), MDSLookupRequest{
+		AAGUID: uuid.New().String(), Source: server.URL, CacheDir: t.TempDir(),
+	})
 
 	if !failure.IsCode(err, failure.CodeMDSFetchFailed) {
 		t.Fatalf("LookupMDS error = %v, want %s", err, failure.CodeMDSFetchFailed)

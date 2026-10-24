@@ -19,7 +19,10 @@ import {
   InteractionKind,
   type PINInteractionState,
 } from "../../bindings/github.com/telesma-app/kit/model";
-import type { DeviceReport } from "../../bindings/github.com/telesma-app/kit/model/report";
+import type {
+  DeviceReport,
+  EndpointReport,
+} from "../../bindings/github.com/telesma-app/kit/model/report";
 import { Mode, SmartCardInterface } from "../../bindings/github.com/telesma-app/kit/transport";
 import { UserVerify } from "../../bindings/github.com/telesma-app/ctap/protocol";
 import type { InteractionPrompt } from "../../bindings/telesma/service";
@@ -35,7 +38,7 @@ import {
   authenticatorStateLabel,
 } from "$lib/format.js";
 import { failureMessage } from "$lib/failure.js";
-import { selectorFromDevice, type AuthenticatorStatus } from "$lib/authenticator-model.js";
+import { type AuthenticatorStatus } from "$lib/authenticator-model.js";
 import type { ActiveScreen, StatusBarState } from "$lib/features/workbench";
 
 export type SidebarTokenItem = {
@@ -91,10 +94,10 @@ export type InteractionModalPresentation = {
   icon: Component;
 };
 
-function sidebarDeviceIcon(device: DeviceReport): Component {
-  if (device.attachment.transport !== Mode.ModeSmartCard) return Usb;
-
-  return device.attachment.smartCard?.interface === SmartCardInterface.SmartCardInterfaceContactless
+function sidebarDeviceIcon(endpoint: EndpointReport): Component {
+  if (endpoint.attachment.transport !== Mode.ModeSmartCard) return Usb;
+  return endpoint.attachment.smartCard!.interface ===
+    SmartCardInterface.SmartCardInterfaceContactless
     ? Nfc
     : CreditCard;
 }
@@ -102,6 +105,7 @@ function sidebarDeviceIcon(device: DeviceReport): Component {
 export function buildSidebarPresentation(input: {
   activeScreen: ActiveScreen;
   devices: DeviceReport[];
+  endpoints: EndpointReport[];
   selectedSelector: string;
   busy: boolean;
 }): SidebarPresentation {
@@ -109,21 +113,26 @@ export function buildSidebarPresentation(input: {
     activeScreen: input.activeScreen,
     activeScreenLabel: screenLabel(input.activeScreen),
     tokens: input.devices.map((device) => {
-      const value = selectorFromDevice(device);
-      const serial = deviceDetail(device);
-      const smartCard = device.attachment.transport === Mode.ModeSmartCard;
-      const reader = device.attachment.smartCard?.reader.trim() ?? "";
-
+      const endpoints = device.endpointIds.map((id) =>
+        input.endpoints.find((endpoint) => endpoint.attachment.id === id)!,
+      );
+      const endpoint = endpoints.find((endpoint) => endpoint.attachment.usb) ?? endpoints[0];
+      const interfaces = endpoints
+        .map((endpoint) => (endpoint.attachment.transport === Mode.ModeSmartCard ? "PC/SC" : "HID"))
+        .join(" · ");
+      const detail = device.identity
+        ? `S/N ${device.identity.serialNumber}`
+        : deviceDetail(endpoint);
+      const reader = endpoint.attachment.smartCard?.reader ?? "";
       return {
-        value,
-        label: labelDevice(device),
-        name: deviceName(device),
-        detail: serial
-          ? `S/N ${serial}`
-          : smartCard
-            ? [reader, "PC/SC"].filter(Boolean).join(" · ")
-            : "",
-        icon: sidebarDeviceIcon(device),
+        value: device.id,
+        label: labelDevice(endpoint, endpoints),
+        name: deviceName(endpoint, endpoints),
+        detail:
+          endpoints.length > 1
+            ? [detail, interfaces].filter(Boolean).join(" · ")
+            : detail || (reader ? `${reader} · PC/SC` : ""),
+        icon: sidebarDeviceIcon(endpoint),
       };
     }),
     selectedValue: input.selectedSelector,
@@ -168,7 +177,8 @@ function activeProgress(statusBar: StatusBarState): ShellStatusProgress | null {
 
 export function buildShellStatusPresentation(input: {
   authenticatorStatus: AuthenticatorStatus;
-  selectedDevice: DeviceReport | null;
+  selectedDevice: EndpointReport | null;
+  endpoints?: EndpointReport[];
   statusBar: StatusBarState;
 }): ShellStatusPresentation {
   const active = input.statusBar.activeOperation;
@@ -209,7 +219,9 @@ export function buildShellStatusPresentation(input: {
       title: authenticatorStateLabel(input.authenticatorStatus.state),
       detail:
         failureMessage(input.authenticatorStatus.error) ||
-        (input.selectedDevice ? deviceName(input.selectedDevice) : m.no_token_selected()),
+        (input.selectedDevice
+          ? deviceName(input.selectedDevice, input.endpoints)
+          : m.no_token_selected()),
       busy: !error,
       progress: null,
       cancel: null,
@@ -223,7 +235,9 @@ export function buildShellStatusPresentation(input: {
       title: outcome.title,
       detail:
         outcome.message ||
-        (input.selectedDevice ? deviceName(input.selectedDevice) : m.no_token_selected()),
+        (input.selectedDevice
+          ? deviceName(input.selectedDevice, input.endpoints)
+          : m.no_token_selected()),
       busy: false,
       progress: null,
       cancel: null,
@@ -234,7 +248,9 @@ export function buildShellStatusPresentation(input: {
     source: "idle",
     tone: "neutral",
     title: authenticatorStateLabel(input.authenticatorStatus.state),
-    detail: input.selectedDevice ? deviceName(input.selectedDevice) : m.no_token_selected(),
+    detail: input.selectedDevice
+      ? deviceName(input.selectedDevice, input.endpoints)
+      : m.no_token_selected(),
     busy: false,
     progress: null,
     cancel: null,

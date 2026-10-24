@@ -4,7 +4,7 @@
     ExtensionIdentifier,
     LargeBlobSupport,
   } from "../../../../bindings/github.com/telesma-app/ctap/extension";
-  import type { InspectEnvelope } from "../../../../bindings/telesma/service";
+  import type { GetInfoEnvelope } from "../../../../bindings/telesma/service";
 
   import * as Alert from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
@@ -12,7 +12,7 @@
   import * as Select from "$lib/components/ui/select";
   import { Switch } from "$lib/components/ui/switch";
   import * as ToggleGroup from "$lib/components/ui/toggle-group";
-  import { inspectResult } from "$lib/ctapkit-results";
+  import { getInfoResult } from "$lib/ctapkit-results";
   import type { MakeCredentialExtensionsDraft } from "$lib/features/lab/state";
   import { authenticatorSupportsLabExtension } from "$lib/lab-extension-support";
   import type { LabValidationIssue } from "$lib/lab-input";
@@ -32,7 +32,7 @@
   type Props = {
     value: MakeCredentialExtensionsDraft;
     disabled?: boolean;
-    inspection: LoadState<InspectEnvelope>;
+    inspection: LoadState<GetInfoEnvelope>;
     errors: LabValidationIssue[];
     onChange: (value: MakeCredentialExtensionsDraft) => void;
     onRetryInspection: () => void;
@@ -50,7 +50,7 @@
   function status(identifier: ExtensionIdentifier): ExtensionStatus {
     if (inspection.state !== "ready") return "unknown";
 
-    const info = inspectResult(inspection.data)?.info;
+    const info = getInfoResult(inspection.data);
 
     return info && authenticatorSupportsLabExtension(info, identifier)
       ? "supported"

@@ -208,7 +208,7 @@ export class ListArraySummary {
 }
 
 export class ListReport {
-    "device": report$0.DeviceReport;
+    "device": report$0.EndpointReport;
     "support": SupportReport;
     "array": ListArraySummary;
     "entries"?: ArrayEntry[];
@@ -216,7 +216,7 @@ export class ListReport {
     /** Creates a new ListReport instance. */
     constructor($$source: Partial<ListReport> = {}) {
         if (!("device" in $$source)) {
-            this["device"] = (new report$0.DeviceReport());
+            this["device"] = (new report$0.EndpointReport());
         }
         if (!("support" in $$source)) {
             this["support"] = (new SupportReport());
@@ -301,7 +301,7 @@ export class MutationOutput {
 
 export class MutationPreview {
     "operation": MutationOperation;
-    "device": report$0.DeviceReport;
+    "device": report$0.EndpointReport;
     "support": SupportReport;
     "target": BlobTarget;
     "largeBlobKeyState": LargeBlobKeyState;
@@ -326,7 +326,7 @@ export class MutationPreview {
             this["operation"] = MutationOperation.$zero;
         }
         if (!("device" in $$source)) {
-            this["device"] = (new report$0.DeviceReport());
+            this["device"] = (new report$0.EndpointReport());
         }
         if (!("support" in $$source)) {
             this["support"] = (new SupportReport());
@@ -459,7 +459,7 @@ export class MutationResult {
 }
 
 export class ReadReport {
-    "device": report$0.DeviceReport;
+    "device": report$0.EndpointReport;
     "target": BlobTarget;
     "state": ReadState;
     "rawHex"?: string;
@@ -468,7 +468,7 @@ export class ReadReport {
     /** Creates a new ReadReport instance. */
     constructor($$source: Partial<ReadReport> = {}) {
         if (!("device" in $$source)) {
-            this["device"] = (new report$0.DeviceReport());
+            this["device"] = (new report$0.EndpointReport());
         }
         if (!("target" in $$source)) {
             this["target"] = (new BlobTarget());
@@ -550,7 +550,7 @@ const $$createType0 = BlobTarget.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = credentials$0.RelyingParty.createFrom;
 const $$createType3 = credentials$0.UserIdentity.createFrom;
-const $$createType4 = report$0.DeviceReport.createFrom;
+const $$createType4 = report$0.EndpointReport.createFrom;
 const $$createType5 = SupportReport.createFrom;
 const $$createType6 = ListArraySummary.createFrom;
 const $$createType7 = ArrayEntry.createFrom;

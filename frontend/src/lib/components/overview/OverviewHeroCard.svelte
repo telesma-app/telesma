@@ -26,6 +26,10 @@
     onRefreshMDS?: () => void | Promise<void>;
   } = $props();
 
+  let hasMetadata = $derived(
+    Boolean(hero.aaguidAvailable || hero.mdsName || hero.mdsState === "error"),
+  );
+
   function mdsTone(state: OverviewMDSState) {
     if (state === "error") return "bad";
 
@@ -35,9 +39,9 @@
   }
 </script>
 
-<div class="overview-summary-grid">
+<div class="overview-summary-grid" data-metadata={hasMetadata}>
   <div class="overview-primary-stack">
-    <Card.Root class="hero-card">
+    <Card.Root class="hero-card" aria-label={hero.title}>
       <Card.Header class="hero-header">
         <div class="hero-identity">
           <div class="token-icon">
@@ -67,10 +71,14 @@
       </Card.Header>
     </Card.Root>
 
-    <OverviewSignalsCard groups={signalGroups} />
+    {#if signalGroups.length}<OverviewSignalsCard groups={signalGroups} />{/if}
   </div>
 
-  <OverviewMetadataPanel {hero} loading={mdsLoading} onRefresh={onRefreshMDS} />
+  {#if hasMetadata}<OverviewMetadataPanel
+      {hero}
+      loading={mdsLoading}
+      onRefresh={onRefreshMDS}
+    />{/if}
 </div>
 
 <style>
@@ -178,12 +186,6 @@
       white-space: nowrap;
     }
 
-    @container workspace (min-width: 64rem) {
-      .overview-summary-grid {
-        grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
-      }
-    }
-
     @container workspace (max-width: 45rem) {
       :global(.hero-header) {
         display: grid;
@@ -195,6 +197,13 @@
 
       :global(.hero-subtitle) {
         min-width: 0;
+      }
+    }
+  }
+  @layer exceptions {
+    @container workspace (min-width: 64rem) {
+      .overview-summary-grid[data-metadata="true"] {
+        grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
       }
     }
   }

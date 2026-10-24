@@ -1,3 +1,10 @@
+import { testTopology } from "../test/device.js";
+import {
+  DescriptorState,
+  GetInfoSource,
+  SourceState,
+} from "../../bindings/github.com/telesma-app/kit/model/report";
+import { USBReport } from "../../bindings/github.com/telesma-app/kit/model/report";
 import { get } from "svelte/store";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -6,10 +13,21 @@ import {
   AlwaysUVTarget,
   AuthenticatorConfigOperation,
   BioMutationOperation,
+  PINMutationOperation,
+  PINMutationResult,
+  PINOutput,
   StateValue,
 } from "../../bindings/github.com/telesma-app/kit/model/config";
+import {
+  FactID,
+  FactOrigin,
+  FactState,
+  FactValue,
+  FactValueKind,
+  Info,
+} from "../../bindings/github.com/telesma-app/kit/model/inspect";
 import { Code } from "../../bindings/github.com/telesma-app/kit/model/failure";
-import type { DeviceReport } from "../../bindings/github.com/telesma-app/kit/model/report";
+import { EndpointReport } from "../../bindings/github.com/telesma-app/kit/model/report";
 import { PreviewMode } from "../../bindings/github.com/telesma-app/kit/model/safety";
 import {
   type ActiveSelection,
@@ -20,7 +38,7 @@ import {
   type BioSensorEnvelope,
   type ConfigStatusEnvelope,
   type PINChangeRequest,
-  type PINEnvelope,
+  PINEnvelope,
   type PINSetRequest,
   type ResetFactoryEnvelope,
 } from "../../bindings/telesma/service";
@@ -29,7 +47,7 @@ import { testSmartCardDevice } from "../test/device.js";
 
 import { api } from "$lib/api";
 import { handleDiscoveryChanged } from "$lib/discovery-controller.js";
-import { errorLoadState, overviewBioSensor, overviewMDS } from "$lib/features/overview/state";
+import { errorLoadState, overviewBioSensor } from "$lib/features/overview/state";
 import { failureForCode } from "$lib/test-support/failure";
 import {
   completeSecurityResourceLoad,
@@ -39,14 +57,18 @@ import {
   securityStatus,
 } from "$lib/features/security/state";
 import {
-  authenticatorInspection,
+  authenticatorGetInfo,
   devices,
   selectedSelector,
+  selectedDevice,
+  selectedDeviceEndpoints,
   authenticatorStatus,
 } from "$lib/features/authenticator/state";
 import { statusBar } from "$lib/features/workbench/state";
 import { setAppLocale } from "$lib/i18n";
 import { operationRecovery } from "$lib/operation-recovery.js";
+import { buildOverviewPresentation } from "$lib/overview-presentation";
+import { testOverviewAssessment, testOverviewFact } from "$lib/test-support/overview-facts";
 import {
   beginAlwaysUVChange,
   beginBioEnrollment,
@@ -76,29 +98,34 @@ import {
 
 const TOKEN = device("token-1");
 
-function device(id: string): DeviceReport {
-  return {
+function device(id: string): EndpointReport {
+  return new EndpointReport({
     attachment: {
       id,
       transport: Mode.ModeHID,
-      usb: { product: id, vendorId: 1, productId: 2 },
+      usb: new USBReport({
+        product: { state: DescriptorState.DescriptorRead, value: id },
+        vendorId: { state: DescriptorState.DescriptorRead, value: 1 },
+        productId: { state: DescriptorState.DescriptorRead, value: 2 },
+      }),
     },
-  };
+  });
 }
 
 function snapshot(
-  item: DeviceReport,
+  item: EndpointReport,
   selectionId = `authenticator-${item.attachment.id}`,
 ): ActiveSelection {
   return {
     id: selectionId,
+    deviceId: item.attachment.id,
     attachmentId: item.attachment.id,
   };
 }
 
 function statusEnvelope(
   options: {
-    item?: DeviceReport;
+    item?: EndpointReport;
     selectionId?: string;
     bioSupported?: boolean;
     bioConfigured?: boolean | null;
@@ -343,6 +370,8 @@ beforeEach(() => {
     state: "ready",
     selectionId: "authenticator-1",
   });
+  vi.spyOn(api, "readSources").mockResolvedValue(undefined);
+  vi.spyOn(api, "refreshMetadata").mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -437,6 +466,100 @@ describe("security controller loading", () => {
 });
 
 describe("security controller mutations", () => {
+  it("refreshes the Overview GetInfo source after setting a PIN", async () => {
+    const [previous, updated] = [false, true].map((configured) => {
+      const item = device("token-1");
+      item.sources.getInfo = new GetInfoSource({
+        state: SourceState.SourceAvailable,
+        data: new Info({
+          options: { clientPin: configured },
+          assessment: testOverviewAssessment([
+            testOverviewFact(
+              FactID.FactIDClientPIN,
+              "options.clientPin",
+              configured ? FactState.FactStateConfigured : FactState.FactStateNotConfigured,
+              FactOrigin.FactOriginReported,
+              new FactValue({ kind: FactValueKind.FactValueBoolean, boolean: configured }),
+            ),
+          ]),
+        }),
+      });
+      return item;
+    });
+    seedActiveScreenForTest("security");
+    seedSelectionForTest(previous.attachment.id, previous, {
+      state: "ready",
+      selectionId: "authenticator-1",
+    });
+    const overviewPIN = () =>
+      buildOverviewPresentation({
+        selectedSelector: get(selectedSelector),
+        selectedDevice: get(selectedDevice),
+        endpoints: get(selectedDeviceEndpoints),
+        overviewBioSensorState: get(overviewBioSensor),
+      }).standard?.capabilities.find((item) => item.id === "pin");
+    vi.spyOn(api, "setPIN").mockResolvedValue(
+      new PINEnvelope({
+        operationId: "set-pin",
+        selectionId: "authenticator-1",
+        kind: OperationKind.SetPIN,
+        result: new PINOutput({
+          result: new PINMutationResult({
+            operation: PINMutationOperation.PINMutationSet,
+            attachmentId: previous.attachment.id,
+            pinState: StateValue.StateConfigured,
+          }),
+        }),
+      }),
+    );
+    vi.spyOn(api, "configStatus").mockResolvedValue(statusEnvelope({ item: updated }));
+    vi.mocked(api.readSources).mockImplementation(async () => {
+      await handleDiscoveryChanged({
+        snapshot: {
+          ...testTopology([updated]),
+          selectedDeviceId: updated.attachment.id,
+          selectedAttachmentId: updated.attachment.id,
+          selection: snapshot(updated, "authenticator-1"),
+        },
+      });
+    });
+
+    expect(overviewPIN()).toMatchObject({ value: "PIN not set", tone: "warning" });
+
+    expect(await setAuthenticatorPIN({ newPIN: "set-secret-123" })).toBe(true);
+
+    expect(api.readSources).toHaveBeenCalledWith({ deviceId: previous.attachment.id });
+    expect(get(selectedDevice)?.sources.getInfo.data).toBe(updated.sources.getInfo.data);
+    expect(overviewPIN()).toMatchObject({ value: "PIN set", tone: "positive" });
+  });
+
+  it("keeps a successful PIN mutation when refreshing sources fails", async () => {
+    vi.spyOn(api, "setPIN").mockResolvedValue(
+      new PINEnvelope({
+        operationId: "set-pin",
+        selectionId: "authenticator-1",
+        kind: OperationKind.SetPIN,
+        result: new PINOutput({
+          result: new PINMutationResult({
+            operation: PINMutationOperation.PINMutationSet,
+            attachmentId: TOKEN.attachment.id,
+            pinState: StateValue.StateConfigured,
+          }),
+        }),
+      }),
+    );
+    vi.spyOn(api, "configStatus").mockResolvedValue(statusEnvelope());
+    vi.mocked(api.readSources).mockRejectedValue(new Error("Wails bridge unavailable"));
+
+    expect(await setAuthenticatorPIN({ newPIN: "set-secret-123" })).toBe(true);
+
+    expect(get(statusBar).lastOutcome).toMatchObject({
+      tone: "error",
+      title: "Could not read device sources",
+      message: "token-1: The operation failed because of an internal error.",
+    });
+  });
+
   it("does not retain or replay PIN input through card recovery", async () => {
     const card = testSmartCardDevice();
 
@@ -512,9 +635,8 @@ describe("security controller mutations", () => {
 
     const staleOverviewFailure = failureForCode(Code.CodeTransportFailure);
 
-    authenticatorInspection.set(errorLoadState(staleOverviewFailure));
+    authenticatorGetInfo.set(errorLoadState(staleOverviewFailure));
     overviewBioSensor.set(errorLoadState(staleOverviewFailure));
-    overviewMDS.set(errorLoadState(staleOverviewFailure));
 
     const setAlwaysUV = vi
       .spyOn(api, "setAlwaysUV")
@@ -553,9 +675,8 @@ describe("security controller mutations", () => {
     const refreshedStatus = get(securityStatus).lastSuccessfulEnvelope!;
 
     expect(refreshedStatus.result!.authenticatorConfig.alwaysUv.configured).toBe(true);
-    expect(get(authenticatorInspection).state).toBe("idle");
+    expect(get(authenticatorGetInfo).state).toBe("idle");
     expect(get(overviewBioSensor).state).toBe("idle");
-    expect(get(overviewMDS).state).toBe("idle");
   });
 
   it("normalizes, previews, and then executes the exact PIN policy request", async () => {
@@ -876,7 +997,9 @@ describe("factory reset lifecycle", () => {
     const reconnectSelection = vi.spyOn(api, "reconnectSelection").mockImplementation(async () => {
       await handleDiscoveryChanged({
         snapshot: {
-          devices: replacements,
+          ...testTopology(replacements),
+          selectedDeviceId: replacements[0].attachment.id,
+          selectedAttachmentId: replacements[0].attachment.id,
           selection: snapshot(replacements[0]),
         },
       });
@@ -893,7 +1016,7 @@ describe("factory reset lifecycle", () => {
     expect(await confirmSecurityMutation()).toBe(true);
 
     expect(reconnectSelection).toHaveBeenCalledOnce();
-    expect(get(devices)).toEqual(replacements);
+    expect(get(devices)).toEqual(testTopology(replacements).devices);
     expect(get(selectedSelector)).toBe(replacements[0].attachment.id);
     expect(get(authenticatorStatus)).toMatchObject({
       state: "ready",
@@ -912,7 +1035,9 @@ describe("factory reset lifecycle", () => {
     const reconnectSelection = vi.spyOn(api, "reconnectSelection").mockImplementation(async () => {
       await handleDiscoveryChanged({
         snapshot: {
-          devices: [replacement],
+          ...testTopology([replacement]),
+          selectedDeviceId: replacement.attachment.id,
+          selectedAttachmentId: replacement.attachment.id,
           selection: snapshot(replacement, "fresh-authenticator"),
         },
       });

@@ -8,61 +8,29 @@ import (
 	ctapkit "github.com/telesma-app/kit"
 	"github.com/telesma-app/kit/model/failure"
 	"github.com/telesma-app/kit/model/report"
+	"github.com/telesma-app/mds"
 )
 
 type selection struct {
 	id         SelectionID
-	device     report.DeviceReport
+	device     report.EndpointReport
 	runtime    openedAuthenticator
 	operations map[OperationID]*operationState
 }
 
 type authenticatorLifecycle interface {
-	Close() error
 	Closed() bool
 }
 
 type openedAuthenticator struct {
+	// The device manager owns and closes the authenticator.
 	client    *ctapkit.Authenticator
 	lifecycle authenticatorLifecycle
-	device    report.DeviceReport
-}
-
-func newOpenedAuthenticator(client *ctapkit.Authenticator) openedAuthenticator {
-	return openedAuthenticator{
-		client:    client,
-		lifecycle: client,
-		device:    client.Device(),
-	}
-}
-
-func (a openedAuthenticator) Close() error {
-	return a.lifecycle.Close()
-}
-
-func (a openedAuthenticator) Closed() bool {
-	return a.lifecycle.Closed()
-}
-
-func (a openedAuthenticator) same(other openedAuthenticator) bool {
-	if a.client != nil || other.client != nil {
-		return a.client == other.client
-	}
-
-	return a.lifecycle == other.lifecycle
+	device    report.EndpointReport
 }
 
 type managedDevices struct {
 	manager *ctapkit.DeviceManager
-}
-
-func managedDeviceState(update ctapkit.DeviceUpdate) deviceManagerState {
-	state := deviceManagerState{update: update}
-	if update.Selected != nil {
-		state.runtime = newOpenedAuthenticator(update.Selected)
-	}
-
-	return state
 }
 
 func (m managedDevices) Next() (deviceManagerState, bool) {
@@ -71,11 +39,32 @@ func (m managedDevices) Next() (deviceManagerState, bool) {
 		return deviceManagerState{}, false
 	}
 
-	return managedDeviceState(update), true
+	state := deviceManagerState{update: update}
+	if client := update.Selected; client != nil {
+		state.runtime = openedAuthenticator{
+			client:    client,
+			lifecycle: client,
+			device:    client.Endpoint(),
+		}
+	}
+
+	return state, true
 }
 
-func (m managedDevices) Select(ctx context.Context, id report.AttachmentID) error {
+func (m managedDevices) Select(ctx context.Context, id report.DeviceID) error {
 	return m.manager.Select(ctx, id)
+}
+
+func (m managedDevices) SelectEndpoint(ctx context.Context, id report.AttachmentID) error {
+	return m.manager.SelectEndpoint(ctx, id)
+}
+
+func (m managedDevices) RefreshSources(ctx context.Context, id report.DeviceID) error {
+	return m.manager.RefreshSources(ctx, id)
+}
+
+func (m managedDevices) RefreshMetadata(ctx context.Context, id report.AttachmentID, client *mds.Client, options mds.LookupOptions) (report.EndpointReport, error) {
+	return m.manager.RefreshMetadata(ctx, id, client, options)
 }
 
 func (m managedDevices) Close() error {
@@ -95,7 +84,7 @@ func (s *Service) SetSelection(
 	ctx context.Context,
 	req SelectionRequest,
 ) error {
-	if req.AttachmentID == "" {
+	if req.DeviceID == "" {
 		return failure.New(
 			failure.CodeDeviceNotFound,
 			failure.WithPhase(failure.PhaseAuthenticator),
@@ -111,6 +100,7 @@ func (s *Service) SetSelection(
 	s.mu.Lock()
 	manager := s.devices
 	s.mu.Unlock()
+
 	if manager == nil {
 		return failure.New(
 			failure.CodeDeviceNotFound,
@@ -118,7 +108,29 @@ func (s *Service) SetSelection(
 		)
 	}
 
-	return manager.Select(ctx, req.AttachmentID)
+	return manager.Select(ctx, req.DeviceID)
+}
+
+func (s *Service) SetEndpointSelection(ctx context.Context, req EndpointSelectionRequest) error {
+	if req.AttachmentID == "" {
+		return failure.New(
+			failure.CodeDeviceNotFound,
+			failure.WithPhase(failure.PhaseAuthenticator),
+		)
+	}
+
+	unlock, err := s.lockSelection(ctx)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+
+	manager, err := s.deviceManager()
+	if err != nil {
+		return err
+	}
+
+	return manager.SelectEndpoint(ctx, req.AttachmentID)
 }
 
 func (s *Service) ReconnectSelection(
@@ -126,17 +138,19 @@ func (s *Service) ReconnectSelection(
 ) error {
 	s.mu.Lock()
 	selected := s.selected
+	preferred := s.deviceSnapshot.Selected
 	s.mu.Unlock()
+
 	if selected == nil {
 		return nil
 	}
 
-	return s.restartDeviceManager(ctx, selected.device.Attachment.ID)
+	return s.restartDeviceManager(ctx, preferred)
 }
 
 func (s *Service) reconcileSelection(runtime openedAuthenticator) {
 	current := s.currentSelection()
-	if current != nil && runtime.lifecycle != nil && current.runtime.same(runtime) {
+	if current != nil && current.runtime.lifecycle == runtime.lifecycle {
 		s.mu.Lock()
 		current.device = runtime.device
 		s.mu.Unlock()
@@ -148,11 +162,13 @@ func (s *Service) reconcileSelection(runtime openedAuthenticator) {
 		s.retireSelection(current)
 		s.cancelAndWait(current)
 	}
+
 	if runtime.lifecycle == nil {
 		return
 	}
 
 	selected := newSelection(SelectionID(uuid.New().String()), runtime)
+
 	s.mu.Lock()
 	if !s.closed {
 		s.selected = selected
@@ -162,7 +178,7 @@ func (s *Service) reconcileSelection(runtime openedAuthenticator) {
 
 func (s *Service) restartDeviceManager(
 	ctx context.Context,
-	preferred report.AttachmentID,
+	preferred report.DeviceID,
 ) error {
 	unlock, err := s.lockSelection(ctx)
 	if err != nil {
@@ -184,10 +200,13 @@ func (s *Service) restartDeviceManager(
 	if manager != nil {
 		closeErr = manager.Close()
 	}
+
 	if selected != nil {
 		s.cancelAndWait(selected)
 	}
+
 	unlock()
+
 	if done != nil {
 		<-done
 	}
@@ -199,7 +218,7 @@ func (s *Service) restartDeviceManager(
 	if preferred != "" {
 		selectErr := s.SetSelection(
 			ctx,
-			SelectionRequest{AttachmentID: preferred},
+			SelectionRequest{DeviceID: preferred},
 		)
 		closeErr = errors.Join(closeErr, selectErr)
 	}
@@ -214,6 +233,7 @@ func (s *Service) close() error {
 
 		return nil
 	}
+
 	s.closed = true
 	s.cancelDevices()
 	s.mu.Unlock()
@@ -231,11 +251,13 @@ func (s *Service) close() error {
 	if manager != nil {
 		closeErr = manager.Close()
 	}
+
 	if selected != nil {
 		s.cancelAndWait(selected)
 	}
 
 	<-s.selectionGate
+
 	if done != nil {
 		<-done
 	}
@@ -256,6 +278,7 @@ func (s *Service) lockSelection(ctx context.Context) (func(), error) {
 		s.mu.Lock()
 		closed := s.closed
 		s.mu.Unlock()
+
 		if closed {
 			<-s.selectionGate
 
@@ -270,6 +293,7 @@ func (s *Service) lockSelection(ctx context.Context) (func(), error) {
 
 func (s *Service) cancelAndWait(selected *selection) {
 	s.mu.Lock()
+
 	operations := make([]*operationState, 0, len(selected.operations))
 	for _, operation := range selected.operations {
 		operations = append(operations, operation)
@@ -279,6 +303,7 @@ func (s *Service) cancelAndWait(selected *selection) {
 	for _, operation := range operations {
 		operation.cancel()
 	}
+
 	for _, operation := range operations {
 		<-operation.done
 	}

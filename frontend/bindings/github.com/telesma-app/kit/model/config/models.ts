@@ -69,7 +69,7 @@ export class AuthenticatorConfigOutput {
 
 export class AuthenticatorConfigPreview {
     "operation": AuthenticatorConfigOperation;
-    "device": report$0.DeviceReport;
+    "device": report$0.EndpointReport;
     "authenticatorConfig": AuthenticatorConfigStatus;
     "currentEnterpriseAttestation"?: boolean | null;
     "requestedEnterpriseAttestation"?: boolean;
@@ -93,7 +93,7 @@ export class AuthenticatorConfigPreview {
             this["operation"] = AuthenticatorConfigOperation.$zero;
         }
         if (!("device" in $$source)) {
-            this["device"] = (new report$0.DeviceReport());
+            this["device"] = (new report$0.EndpointReport());
         }
         if (!("authenticatorConfig" in $$source)) {
             this["authenticatorConfig"] = (new AuthenticatorConfigStatus());
@@ -288,7 +288,7 @@ export class BioEnrollOutput {
 }
 
 export class BioEnrollPreview {
-    "device": report$0.DeviceReport;
+    "device": report$0.EndpointReport;
     "previewOnly": boolean;
     "timeoutMilliseconds": number;
     "mode": safety$0.PreviewMode;
@@ -297,7 +297,7 @@ export class BioEnrollPreview {
     /** Creates a new BioEnrollPreview instance. */
     constructor($$source: Partial<BioEnrollPreview> = {}) {
         if (!("device" in $$source)) {
-            this["device"] = (new report$0.DeviceReport());
+            this["device"] = (new report$0.EndpointReport());
         }
         if (!("previewOnly" in $$source)) {
             this["previewOnly"] = false;
@@ -410,7 +410,7 @@ export class BioEnrollmentRecord {
 }
 
 export class BioListReport {
-    "device": report$0.DeviceReport;
+    "device": report$0.EndpointReport;
     "supported": boolean;
     "previewOnly": boolean;
     "enrollments": BioEnrollmentRecord[];
@@ -418,7 +418,7 @@ export class BioListReport {
     /** Creates a new BioListReport instance. */
     constructor($$source: Partial<BioListReport> = {}) {
         if (!("device" in $$source)) {
-            this["device"] = (new report$0.DeviceReport());
+            this["device"] = (new report$0.EndpointReport());
         }
         if (!("supported" in $$source)) {
             this["supported"] = false;
@@ -504,7 +504,7 @@ export class BioMutationOutput {
 
 export class BioMutationPreview {
     "operation": BioMutationOperation;
-    "device": report$0.DeviceReport;
+    "device": report$0.EndpointReport;
     "previewOnly": boolean;
     "templateIDHex": string;
     "friendlyName"?: string;
@@ -517,7 +517,7 @@ export class BioMutationPreview {
             this["operation"] = BioMutationOperation.$zero;
         }
         if (!("device" in $$source)) {
-            this["device"] = (new report$0.DeviceReport());
+            this["device"] = (new report$0.EndpointReport());
         }
         if (!("previewOnly" in $$source)) {
             this["previewOnly"] = false;
@@ -584,7 +584,7 @@ export class BioMutationResult {
 }
 
 export class BioSensorReport {
-    "device": report$0.DeviceReport;
+    "device": report$0.EndpointReport;
     "supported": boolean;
     "previewOnly": boolean;
     "modality"?: BioModality;
@@ -595,7 +595,7 @@ export class BioSensorReport {
     /** Creates a new BioSensorReport instance. */
     constructor($$source: Partial<BioSensorReport> = {}) {
         if (!("device" in $$source)) {
-            this["device"] = (new report$0.DeviceReport());
+            this["device"] = (new report$0.EndpointReport());
         }
         if (!("supported" in $$source)) {
             this["supported"] = false;
@@ -734,7 +734,7 @@ export enum PINMutationOperation {
 
 export class PINMutationPreview {
     "operation": PINMutationOperation;
-    "device": report$0.DeviceReport;
+    "device": report$0.EndpointReport;
     "pin": PINStatus;
     "mode": safety$0.PreviewMode;
     "warnings"?: safety$0.Warning[];
@@ -745,7 +745,7 @@ export class PINMutationPreview {
             this["operation"] = PINMutationOperation.$zero;
         }
         if (!("device" in $$source)) {
-            this["device"] = (new report$0.DeviceReport());
+            this["device"] = (new report$0.EndpointReport());
         }
         if (!("pin" in $$source)) {
             this["pin"] = (new PINStatus());
@@ -949,7 +949,7 @@ export class ResetHints {
 }
 
 export class ResetPreview {
-    "device": report$0.DeviceReport;
+    "device": report$0.EndpointReport;
     "resetHints": ResetHints;
     "mode": safety$0.PreviewMode;
     "warnings"?: safety$0.Warning[];
@@ -957,7 +957,7 @@ export class ResetPreview {
     /** Creates a new ResetPreview instance. */
     constructor($$source: Partial<ResetPreview> = {}) {
         if (!("device" in $$source)) {
-            this["device"] = (new report$0.DeviceReport());
+            this["device"] = (new report$0.EndpointReport());
         }
         if (!("resetHints" in $$source)) {
             this["resetHints"] = (new ResetHints());
@@ -1053,7 +1053,7 @@ export enum StateValue {
 };
 
 export class StatusReport {
-    "device": report$0.DeviceReport;
+    "device": report$0.EndpointReport;
     "pin": PINStatus;
     "uv": UVStatus;
     "bio": BioStatus;
@@ -1064,7 +1064,7 @@ export class StatusReport {
     /** Creates a new StatusReport instance. */
     constructor($$source: Partial<StatusReport> = {}) {
         if (!("device" in $$source)) {
-            this["device"] = (new report$0.DeviceReport());
+            this["device"] = (new report$0.EndpointReport());
         }
         if (!("pin" in $$source)) {
             this["pin"] = (new PINStatus());
@@ -1164,7 +1164,7 @@ export class UVStatus {
 const $$createType0 = AuthenticatorConfigPreview.createFrom;
 const $$createType1 = AuthenticatorConfigResult.createFrom;
 const $$createType2 = $Create.Nullable($$createType1);
-const $$createType3 = report$0.DeviceReport.createFrom;
+const $$createType3 = report$0.EndpointReport.createFrom;
 const $$createType4 = AuthenticatorConfigStatus.createFrom;
 const $$createType5 = $Create.Array($Create.Any);
 const $$createType6 = safety$0.Warning.createFrom;

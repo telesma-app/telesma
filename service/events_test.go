@@ -59,6 +59,7 @@ func TestInteractionEmitsWithoutWritingApplicationJournalEntry(t *testing.T) {
 		answer, err := handler.RequestInteraction(t.Context(), model.InteractionRequest{Kind: model.InteractionKindPIN})
 
 		clear(answer.PIN)
+
 		result <- err
 	}()
 

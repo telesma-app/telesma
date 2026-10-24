@@ -7,7 +7,19 @@ import { Create as $Create } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as ctaphid$0 from "../../../ctap/transport/ctaphid/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as failure$0 from "../failure/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as inspect$0 from "../inspect/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as transport$0 from "../../transport/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as model$0 from "../../../mds/model/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as token2$0 from "../../../token2/models.js";
@@ -16,14 +28,12 @@ import * as token2$0 from "../../../token2/models.js";
 import * as yubico$0 from "../../../yubico/models.js";
 
 /**
- * AttachmentID identifies one currently reachable transport endpoint. It is
- * not a physical-device identity and is never derived from hardware identity.
+ * AttachmentID identifies a transport endpoint, not a physical device.
  */
 export type AttachmentID = string;
 
 /**
- * AttachmentReport is the transport-layer view of one reachable CTAP
- * authenticator.
+ * AttachmentReport is the transport-layer view of one present endpoint.
  */
 export class AttachmentReport {
     "id": AttachmentID;
@@ -61,45 +71,102 @@ export class AttachmentReport {
 }
 
 /**
- * DeviceIdentityReport is the stable identity summary derived from vendor
- * metadata.
+ * Descriptor is the JSON representation of one HID observation.
  */
-export class DeviceIdentityReport {
-    "vendor": DeviceVendor;
-    "name"?: string;
-    "serialNumber"?: string;
+export class Descriptor<T> {
+    "value"?: T;
+    "state": DescriptorState;
+    "error"?: {"message": string} | null;
 
-    /** Creates a new DeviceIdentityReport instance. */
-    constructor($$source: Partial<DeviceIdentityReport> = {}) {
-        if (!("vendor" in $$source)) {
-            this["vendor"] = DeviceVendor.$zero;
+    /** Creates a new Descriptor instance. */
+    constructor($$source: Partial<Descriptor<T>> = {}) {
+        if (!("state" in $$source)) {
+            this["state"] = DescriptorState.$zero;
         }
 
         Object.assign(this, $$source);
     }
 
     /**
-     * Creates a new DeviceIdentityReport instance from a string or object.
+     * Given creation functions for each type parameter,
+     * returns a creation function for a concrete instance
+     * of the generic class Descriptor.
      */
-    static createFrom($$source: any = {}): DeviceIdentityReport {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new DeviceIdentityReport($$parsedSource as Partial<DeviceIdentityReport>);
+    static createFrom<T = any>($$createParamT: (source: any) => T): ($$source?: any) => Descriptor<T> {
+        const $$createField0_0 = $$createParamT;
+        return ($$source: any = {}) => {
+            let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+            if ("value" in $$parsedSource) {
+                $$parsedSource["value"] = $$createField0_0($$parsedSource["value"]);
+            }
+            return new Descriptor<T>($$parsedSource as Partial<Descriptor<T>>);
+        };
     }
 }
 
 /**
- * DeviceReport describes one selectable transport attachment and its resolved
- * physical-device identity and vendor metadata.
+ * DescriptorState is the outcome exposed in application reports.
+ */
+export enum DescriptorState {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    DescriptorUnknown = "",
+    DescriptorRead = "read",
+    DescriptorFailed = "error",
+};
+
+/**
+ * DeviceID identifies a physical token independently of its selected endpoint.
+ */
+export type DeviceID = string;
+
+/**
+ * DeviceIdentity is verified by a manufacturer's full serial-number command.
+ */
+export class DeviceIdentity {
+    "vendor": Vendor;
+    "serialNumber": string;
+
+    /** Creates a new DeviceIdentity instance. */
+    constructor($$source: Partial<DeviceIdentity> = {}) {
+        if (!("vendor" in $$source)) {
+            this["vendor"] = Vendor.$zero;
+        }
+        if (!("serialNumber" in $$source)) {
+            this["serialNumber"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new DeviceIdentity instance from a string or object.
+     */
+    static createFrom($$source: any = {}): DeviceIdentity {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new DeviceIdentity($$parsedSource as Partial<DeviceIdentity>);
+    }
+}
+
+/**
+ * DeviceReport owns endpoint membership. Endpoint data and the active endpoint
+ * are stored once in DeviceSnapshot, not copied into the physical device.
  */
 export class DeviceReport {
-    "attachment": AttachmentReport;
-    "identity"?: DeviceIdentityReport | null;
-    "vendorMetadata"?: DeviceVendorMetadata | null;
+    "id": DeviceID;
+    "identity"?: DeviceIdentity | null;
+    "endpointIds": AttachmentID[];
 
     /** Creates a new DeviceReport instance. */
     constructor($$source: Partial<DeviceReport> = {}) {
-        if (!("attachment" in $$source)) {
-            this["attachment"] = (new AttachmentReport());
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("endpointIds" in $$source)) {
+            this["endpointIds"] = [];
         }
 
         Object.assign(this, $$source);
@@ -109,61 +176,178 @@ export class DeviceReport {
      * Creates a new DeviceReport instance from a string or object.
      */
     static createFrom($$source: any = {}): DeviceReport {
-        const $$createField0_0 = $$createType4;
-        const $$createField1_0 = $$createType6;
-        const $$createField2_0 = $$createType8;
+        const $$createField1_0 = $$createType5;
+        const $$createField2_0 = $$createType6;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("attachment" in $$parsedSource) {
-            $$parsedSource["attachment"] = $$createField0_0($$parsedSource["attachment"]);
-        }
         if ("identity" in $$parsedSource) {
             $$parsedSource["identity"] = $$createField1_0($$parsedSource["identity"]);
         }
-        if ("vendorMetadata" in $$parsedSource) {
-            $$parsedSource["vendorMetadata"] = $$createField2_0($$parsedSource["vendorMetadata"]);
+        if ("endpointIds" in $$parsedSource) {
+            $$parsedSource["endpointIds"] = $$createField2_0($$parsedSource["endpointIds"]);
         }
         return new DeviceReport($$parsedSource as Partial<DeviceReport>);
     }
 }
 
-export enum DeviceVendor {
-    /**
-     * The Go zero value for the underlying type of the enum.
-     */
-    $zero = "",
-
-    DeviceVendorYubico = "yubico",
-    DeviceVendorToken2 = "token2",
-};
-
 /**
- * DeviceVendorMetadata is an extensible tagged union of metadata returned by
- * vendor-owned packages. A provider sets only its own field.
+ * EndpointReport contains observations obtained through one transport endpoint.
  */
-export class DeviceVendorMetadata {
-    "yubico"?: yubico$0.DeviceInfo | null;
-    "token2"?: token2$0.DeviceInfo | null;
+export class EndpointReport {
+    "attachment": AttachmentReport;
+    "sources": Sources;
 
-    /** Creates a new DeviceVendorMetadata instance. */
-    constructor($$source: Partial<DeviceVendorMetadata> = {}) {
+    /** Creates a new EndpointReport instance. */
+    constructor($$source: Partial<EndpointReport> = {}) {
+        if (!("attachment" in $$source)) {
+            this["attachment"] = (new AttachmentReport());
+        }
+        if (!("sources" in $$source)) {
+            this["sources"] = (new Sources());
+        }
 
         Object.assign(this, $$source);
     }
 
     /**
-     * Creates a new DeviceVendorMetadata instance from a string or object.
+     * Creates a new EndpointReport instance from a string or object.
      */
-    static createFrom($$source: any = {}): DeviceVendorMetadata {
-        const $$createField0_0 = $$createType10;
-        const $$createField1_0 = $$createType12;
+    static createFrom($$source: any = {}): EndpointReport {
+        const $$createField0_0 = $$createType7;
+        const $$createField1_0 = $$createType8;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("yubico" in $$parsedSource) {
-            $$parsedSource["yubico"] = $$createField0_0($$parsedSource["yubico"]);
+        if ("attachment" in $$parsedSource) {
+            $$parsedSource["attachment"] = $$createField0_0($$parsedSource["attachment"]);
         }
-        if ("token2" in $$parsedSource) {
-            $$parsedSource["token2"] = $$createField1_0($$parsedSource["token2"]);
+        if ("sources" in $$parsedSource) {
+            $$parsedSource["sources"] = $$createField1_0($$parsedSource["sources"]);
         }
-        return new DeviceVendorMetadata($$parsedSource as Partial<DeviceVendorMetadata>);
+        return new EndpointReport($$parsedSource as Partial<EndpointReport>);
+    }
+}
+
+export class GetInfoSource {
+    "state": SourceState;
+    "reason"?: SourceReason;
+    "error"?: failure$0.Failure | null;
+    "data"?: inspect$0.Info | null;
+
+    /** Creates a new GetInfoSource instance. */
+    constructor($$source: Partial<GetInfoSource> = {}) {
+        if (!("state" in $$source)) {
+            this["state"] = SourceState.$zero;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new GetInfoSource instance from a string or object.
+     */
+    static createFrom($$source: any = {}): GetInfoSource {
+        const $$createField2_0 = $$createType10;
+        const $$createField3_0 = $$createType12;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("error" in $$parsedSource) {
+            $$parsedSource["error"] = $$createField2_0($$parsedSource["error"]);
+        }
+        if ("data" in $$parsedSource) {
+            $$parsedSource["data"] = $$createField3_0($$parsedSource["data"]);
+        }
+        return new GetInfoSource($$parsedSource as Partial<GetInfoSource>);
+    }
+}
+
+export class HIDInitSource {
+    "state": SourceState;
+    "reason"?: SourceReason;
+    "error"?: failure$0.Failure | null;
+    "data"?: ctaphid$0.InitResponse | null;
+
+    /** Creates a new HIDInitSource instance. */
+    constructor($$source: Partial<HIDInitSource> = {}) {
+        if (!("state" in $$source)) {
+            this["state"] = SourceState.$zero;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new HIDInitSource instance from a string or object.
+     */
+    static createFrom($$source: any = {}): HIDInitSource {
+        const $$createField2_0 = $$createType10;
+        const $$createField3_0 = $$createType14;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("error" in $$parsedSource) {
+            $$parsedSource["error"] = $$createField2_0($$parsedSource["error"]);
+        }
+        if ("data" in $$parsedSource) {
+            $$parsedSource["data"] = $$createField3_0($$parsedSource["data"]);
+        }
+        return new HIDInitSource($$parsedSource as Partial<HIDInitSource>);
+    }
+}
+
+export class MDSSource {
+    "state": SourceState;
+    "reason"?: SourceReason;
+    "error"?: failure$0.Failure | null;
+    "data"?: model$0.LookupResult | null;
+
+    /** Creates a new MDSSource instance. */
+    constructor($$source: Partial<MDSSource> = {}) {
+        if (!("state" in $$source)) {
+            this["state"] = SourceState.$zero;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new MDSSource instance from a string or object.
+     */
+    static createFrom($$source: any = {}): MDSSource {
+        const $$createField2_0 = $$createType10;
+        const $$createField3_0 = $$createType16;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("error" in $$parsedSource) {
+            $$parsedSource["error"] = $$createField2_0($$parsedSource["error"]);
+        }
+        if ("data" in $$parsedSource) {
+            $$parsedSource["data"] = $$createField3_0($$parsedSource["data"]);
+        }
+        return new MDSSource($$parsedSource as Partial<MDSSource>);
+    }
+}
+
+/**
+ * Outcome records a source attempt; an error does not imply missing data.
+ */
+export class Outcome {
+    "state": SourceState;
+    "reason"?: SourceReason;
+    "error"?: failure$0.Failure | null;
+
+    /** Creates a new Outcome instance. */
+    constructor($$source: Partial<Outcome> = {}) {
+        if (!("state" in $$source)) {
+            this["state"] = SourceState.$zero;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Outcome instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Outcome {
+        const $$createField2_0 = $$createType10;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("error" in $$parsedSource) {
+            $$parsedSource["error"] = $$createField2_0($$parsedSource["error"]);
+        }
+        return new Outcome($$parsedSource as Partial<Outcome>);
     }
 }
 
@@ -174,6 +358,7 @@ export class SmartCardReport {
     "reader": string;
     "atr"?: string;
     "interface": transport$0.SmartCardInterface;
+    "fidoApplication": Outcome;
 
     /** Creates a new SmartCardReport instance. */
     constructor($$source: Partial<SmartCardReport> = {}) {
@@ -183,6 +368,9 @@ export class SmartCardReport {
         if (!("interface" in $$source)) {
             this["interface"] = transport$0.SmartCardInterface.$zero;
         }
+        if (!("fidoApplication" in $$source)) {
+            this["fidoApplication"] = (new Outcome());
+        }
 
         Object.assign(this, $$source);
     }
@@ -191,29 +379,287 @@ export class SmartCardReport {
      * Creates a new SmartCardReport instance from a string or object.
      */
     static createFrom($$source: any = {}): SmartCardReport {
+        const $$createField3_0 = $$createType17;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("fidoApplication" in $$parsedSource) {
+            $$parsedSource["fidoApplication"] = $$createField3_0($$parsedSource["fidoApplication"]);
+        }
         return new SmartCardReport($$parsedSource as Partial<SmartCardReport>);
     }
 }
 
 /**
- * USBReport contains observations reported by USB/HID topology. ReportedSerial
- * is not the canonical hardware serial returned by a vendor provider.
+ * SourceReadError is diagnostic text from an independent metadata read.
+ */
+export class SourceReadError {
+    "message": string;
+
+    /** Creates a new SourceReadError instance. */
+    constructor($$source: Partial<SourceReadError> = {}) {
+        if (!("message" in $$source)) {
+            this["message"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SourceReadError instance from a string or object.
+     */
+    static createFrom($$source: any = {}): SourceReadError {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new SourceReadError($$parsedSource as Partial<SourceReadError>);
+    }
+}
+
+/**
+ * SourceReading retains a value received before a read or cleanup failure.
+ * A nil Value with no Error means the interface did not provide a reading.
+ */
+export class SourceReading<T> {
+    "value": T | null;
+    "error"?: SourceReadError | null;
+
+    /** Creates a new SourceReading instance. */
+    constructor($$source: Partial<SourceReading<T>> = {}) {
+        if (!("value" in $$source)) {
+            this["value"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Given creation functions for each type parameter,
+     * returns a creation function for a concrete instance
+     * of the generic class SourceReading.
+     */
+    static createFrom<T = any>($$createParamT: (source: any) => T): ($$source?: any) => SourceReading<T> {
+        const $$createField0_0 = $$createType18($$createParamT);
+        const $$createField1_0 = $$createType20;
+        return ($$source: any = {}) => {
+            let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+            if ("value" in $$parsedSource) {
+                $$parsedSource["value"] = $$createField0_0($$parsedSource["value"]);
+            }
+            if ("error" in $$parsedSource) {
+                $$parsedSource["error"] = $$createField1_0($$parsedSource["error"]);
+            }
+            return new SourceReading<T>($$parsedSource as Partial<SourceReading<T>>);
+        };
+    }
+}
+
+export enum SourceReason {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    ReasonTransport = "transport",
+    ReasonAdapterMissing = "adapter-missing",
+    ReasonAAGUIDMissing = "aaguid-missing",
+    ReasonVendorMismatch = "vendor-mismatch",
+    ReasonVendorUnknown = "vendor-unknown",
+};
+
+export enum SourceState {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    SourceNotRequested = "not-requested",
+    SourceLoading = "loading",
+    SourceAvailable = "available",
+    SourcePartial = "partial",
+    SourceAbsent = "absent",
+    SourceUnavailable = "unavailable",
+    SourceUnsupported = "unsupported",
+    SourceFailed = "failed",
+};
+
+/**
+ * Sources are independent observations, never a guessed physical identity.
+ */
+export class Sources {
+    "hidInit": HIDInitSource;
+    "getInfo": GetInfoSource;
+    "mds": MDSSource;
+    "yubico": YubicoSource;
+    "token2": Token2Source;
+
+    /** Creates a new Sources instance. */
+    constructor($$source: Partial<Sources> = {}) {
+        if (!("hidInit" in $$source)) {
+            this["hidInit"] = (new HIDInitSource());
+        }
+        if (!("getInfo" in $$source)) {
+            this["getInfo"] = (new GetInfoSource());
+        }
+        if (!("mds" in $$source)) {
+            this["mds"] = (new MDSSource());
+        }
+        if (!("yubico" in $$source)) {
+            this["yubico"] = (new YubicoSource());
+        }
+        if (!("token2" in $$source)) {
+            this["token2"] = (new Token2Source());
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Sources instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Sources {
+        const $$createField0_0 = $$createType21;
+        const $$createField1_0 = $$createType22;
+        const $$createField2_0 = $$createType23;
+        const $$createField3_0 = $$createType24;
+        const $$createField4_0 = $$createType25;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("hidInit" in $$parsedSource) {
+            $$parsedSource["hidInit"] = $$createField0_0($$parsedSource["hidInit"]);
+        }
+        if ("getInfo" in $$parsedSource) {
+            $$parsedSource["getInfo"] = $$createField1_0($$parsedSource["getInfo"]);
+        }
+        if ("mds" in $$parsedSource) {
+            $$parsedSource["mds"] = $$createField2_0($$parsedSource["mds"]);
+        }
+        if ("yubico" in $$parsedSource) {
+            $$parsedSource["yubico"] = $$createField3_0($$parsedSource["yubico"]);
+        }
+        if ("token2" in $$parsedSource) {
+            $$parsedSource["token2"] = $$createField4_0($$parsedSource["token2"]);
+        }
+        return new Sources($$parsedSource as Partial<Sources>);
+    }
+}
+
+/**
+ * Token2Report exposes independent vendor observations through the runtime's
+ * report boundary. The Token2 library retains Go errors in its descriptors.
+ */
+export class Token2Report {
+    "serialNumber": SourceReading<string>;
+    "atr": SourceReading<token2$0.ATR>;
+    "configuration": SourceReading<token2$0.Configuration>;
+    "model"?: token2$0.Model | null;
+
+    /** Creates a new Token2Report instance. */
+    constructor($$source: Partial<Token2Report> = {}) {
+        if (!("serialNumber" in $$source)) {
+            this["serialNumber"] = (new SourceReading());
+        }
+        if (!("atr" in $$source)) {
+            this["atr"] = (new SourceReading());
+        }
+        if (!("configuration" in $$source)) {
+            this["configuration"] = (new SourceReading());
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Token2Report instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Token2Report {
+        const $$createField0_0 = $$createType26;
+        const $$createField1_0 = $$createType28;
+        const $$createField2_0 = $$createType30;
+        const $$createField3_0 = $$createType32;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("serialNumber" in $$parsedSource) {
+            $$parsedSource["serialNumber"] = $$createField0_0($$parsedSource["serialNumber"]);
+        }
+        if ("atr" in $$parsedSource) {
+            $$parsedSource["atr"] = $$createField1_0($$parsedSource["atr"]);
+        }
+        if ("configuration" in $$parsedSource) {
+            $$parsedSource["configuration"] = $$createField2_0($$parsedSource["configuration"]);
+        }
+        if ("model" in $$parsedSource) {
+            $$parsedSource["model"] = $$createField3_0($$parsedSource["model"]);
+        }
+        return new Token2Report($$parsedSource as Partial<Token2Report>);
+    }
+}
+
+export class Token2Source {
+    "state": SourceState;
+    "reason"?: SourceReason;
+    "error"?: failure$0.Failure | null;
+    "data"?: Token2Report | null;
+
+    /** Creates a new Token2Source instance. */
+    constructor($$source: Partial<Token2Source> = {}) {
+        if (!("state" in $$source)) {
+            this["state"] = SourceState.$zero;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Token2Source instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Token2Source {
+        const $$createField2_0 = $$createType10;
+        const $$createField3_0 = $$createType34;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("error" in $$parsedSource) {
+            $$parsedSource["error"] = $$createField2_0($$parsedSource["error"]);
+        }
+        if ("data" in $$parsedSource) {
+            $$parsedSource["data"] = $$createField3_0($$parsedSource["data"]);
+        }
+        return new Token2Source($$parsedSource as Partial<Token2Source>);
+    }
+}
+
+/**
+ * USBReport contains USB/HID observations, independent of vendor commands.
  */
 export class USBReport {
-    "manufacturer"?: string;
-    "product"?: string;
-    "reportedSerial"?: string;
-    "vendorId": number;
-    "productId": number;
+    "manufacturer": Descriptor<string>;
+    "product": Descriptor<string>;
+    "reportedSerial": Descriptor<string>;
+    "vendorId": Descriptor<number>;
+    "productId": Descriptor<number>;
+
+    /**
+     * Linux kernel observations, which may differ from USB strings.
+     */
+    "hidName": Descriptor<string>;
+    "hidUnique": Descriptor<string>;
+    "metadataError"?: failure$0.Failure | null;
 
     /** Creates a new USBReport instance. */
     constructor($$source: Partial<USBReport> = {}) {
+        if (!("manufacturer" in $$source)) {
+            this["manufacturer"] = (new Descriptor());
+        }
+        if (!("product" in $$source)) {
+            this["product"] = (new Descriptor());
+        }
+        if (!("reportedSerial" in $$source)) {
+            this["reportedSerial"] = (new Descriptor());
+        }
         if (!("vendorId" in $$source)) {
-            this["vendorId"] = 0;
+            this["vendorId"] = (new Descriptor());
         }
         if (!("productId" in $$source)) {
-            this["productId"] = 0;
+            this["productId"] = (new Descriptor());
+        }
+        if (!("hidName" in $$source)) {
+            this["hidName"] = (new Descriptor());
+        }
+        if (!("hidUnique" in $$source)) {
+            this["hidUnique"] = (new Descriptor());
         }
 
         Object.assign(this, $$source);
@@ -223,8 +669,86 @@ export class USBReport {
      * Creates a new USBReport instance from a string or object.
      */
     static createFrom($$source: any = {}): USBReport {
+        const $$createField0_0 = $$createType35;
+        const $$createField1_0 = $$createType35;
+        const $$createField2_0 = $$createType35;
+        const $$createField3_0 = $$createType36;
+        const $$createField4_0 = $$createType36;
+        const $$createField5_0 = $$createType35;
+        const $$createField6_0 = $$createType35;
+        const $$createField7_0 = $$createType10;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("manufacturer" in $$parsedSource) {
+            $$parsedSource["manufacturer"] = $$createField0_0($$parsedSource["manufacturer"]);
+        }
+        if ("product" in $$parsedSource) {
+            $$parsedSource["product"] = $$createField1_0($$parsedSource["product"]);
+        }
+        if ("reportedSerial" in $$parsedSource) {
+            $$parsedSource["reportedSerial"] = $$createField2_0($$parsedSource["reportedSerial"]);
+        }
+        if ("vendorId" in $$parsedSource) {
+            $$parsedSource["vendorId"] = $$createField3_0($$parsedSource["vendorId"]);
+        }
+        if ("productId" in $$parsedSource) {
+            $$parsedSource["productId"] = $$createField4_0($$parsedSource["productId"]);
+        }
+        if ("hidName" in $$parsedSource) {
+            $$parsedSource["hidName"] = $$createField5_0($$parsedSource["hidName"]);
+        }
+        if ("hidUnique" in $$parsedSource) {
+            $$parsedSource["hidUnique"] = $$createField6_0($$parsedSource["hidUnique"]);
+        }
+        if ("metadataError" in $$parsedSource) {
+            $$parsedSource["metadataError"] = $$createField7_0($$parsedSource["metadataError"]);
+        }
         return new USBReport($$parsedSource as Partial<USBReport>);
+    }
+}
+
+export enum Vendor {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    VendorYubico = "yubico",
+    VendorToken2 = "token2",
+};
+
+/**
+ * YubicoSource includes a model name when the management response is recognized.
+ */
+export class YubicoSource {
+    "state": SourceState;
+    "reason"?: SourceReason;
+    "error"?: failure$0.Failure | null;
+    "modelName"?: string;
+    "data"?: yubico$0.DeviceInfo | null;
+
+    /** Creates a new YubicoSource instance. */
+    constructor($$source: Partial<YubicoSource> = {}) {
+        if (!("state" in $$source)) {
+            this["state"] = SourceState.$zero;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new YubicoSource instance from a string or object.
+     */
+    static createFrom($$source: any = {}): YubicoSource {
+        const $$createField2_0 = $$createType10;
+        const $$createField4_0 = $$createType38;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("error" in $$parsedSource) {
+            $$parsedSource["error"] = $$createField2_0($$parsedSource["error"]);
+        }
+        if ("data" in $$parsedSource) {
+            $$parsedSource["data"] = $$createField4_0($$parsedSource["data"]);
+        }
+        return new YubicoSource($$parsedSource as Partial<YubicoSource>);
     }
 }
 
@@ -233,12 +757,63 @@ const $$createType0 = USBReport.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = SmartCardReport.createFrom;
 const $$createType3 = $Create.Nullable($$createType2);
-const $$createType4 = AttachmentReport.createFrom;
-const $$createType5 = DeviceIdentityReport.createFrom;
-const $$createType6 = $Create.Nullable($$createType5);
-const $$createType7 = DeviceVendorMetadata.createFrom;
-const $$createType8 = $Create.Nullable($$createType7);
-const $$createType9 = yubico$0.DeviceInfo.createFrom;
+const $$createType4 = DeviceIdentity.createFrom;
+const $$createType5 = $Create.Nullable($$createType4);
+const $$createType6 = $Create.Array($Create.Any);
+const $$createType7 = AttachmentReport.createFrom;
+const $$createType8 = Sources.createFrom;
+const $$createType9 = failure$0.Failure.createFrom;
 const $$createType10 = $Create.Nullable($$createType9);
-const $$createType11 = token2$0.DeviceInfo.createFrom;
+const $$createType11 = inspect$0.Info.createFrom;
 const $$createType12 = $Create.Nullable($$createType11);
+const $$createType13 = ctaphid$0.InitResponse.createFrom;
+const $$createType14 = $Create.Nullable($$createType13);
+const $$createType15 = model$0.LookupResult.createFrom;
+const $$createType16 = $Create.Nullable($$createType15);
+const $$createType17 = Outcome.createFrom;
+const $$createType18 = ($$createParamT: any) => $Create.Nullable($$createParamT);
+const $$createType19 = SourceReadError.createFrom;
+const $$createType20 = $Create.Nullable($$createType19);
+const $$createType21 = HIDInitSource.createFrom;
+const $$createType22 = GetInfoSource.createFrom;
+const $$createType23 = MDSSource.createFrom;
+const $$createType24 = YubicoSource.createFrom;
+const $$createType25 = Token2Source.createFrom;
+var $$createType26 = (function $$initCreateType26(...args: any[]): any {
+    if ($$createType26 === $$initCreateType26) {
+        $$createType26 = SourceReading.createFrom($Create.Any);
+    }
+    return $$createType26(...args);
+});
+const $$createType27 = token2$0.ATR.createFrom;
+var $$createType28 = (function $$initCreateType28(...args: any[]): any {
+    if ($$createType28 === $$initCreateType28) {
+        $$createType28 = SourceReading.createFrom($$createType27);
+    }
+    return $$createType28(...args);
+});
+const $$createType29 = token2$0.Configuration.createFrom;
+var $$createType30 = (function $$initCreateType30(...args: any[]): any {
+    if ($$createType30 === $$initCreateType30) {
+        $$createType30 = SourceReading.createFrom($$createType29);
+    }
+    return $$createType30(...args);
+});
+const $$createType31 = token2$0.Model.createFrom;
+const $$createType32 = $Create.Nullable($$createType31);
+const $$createType33 = Token2Report.createFrom;
+const $$createType34 = $Create.Nullable($$createType33);
+var $$createType35 = (function $$initCreateType35(...args: any[]): any {
+    if ($$createType35 === $$initCreateType35) {
+        $$createType35 = Descriptor.createFrom($Create.Any);
+    }
+    return $$createType35(...args);
+});
+var $$createType36 = (function $$initCreateType36(...args: any[]): any {
+    if ($$createType36 === $$initCreateType36) {
+        $$createType36 = Descriptor.createFrom($Create.Any);
+    }
+    return $$createType36(...args);
+});
+const $$createType37 = yubico$0.DeviceInfo.createFrom;
+const $$createType38 = $Create.Nullable($$createType37);

@@ -12,6 +12,11 @@ vars:
   VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
 
 tasks:
+  lint:
+    summary: Runs Go linters
+    cmds:
+      - golangci-lint run ./...
+
   build:
     summary: Builds the application
     cmds:

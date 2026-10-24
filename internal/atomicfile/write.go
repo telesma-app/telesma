@@ -16,7 +16,6 @@ func WriteFile(path string, data []byte, filePerm, dirPerm fs.FileMode) error {
 	}
 
 	tempFile, err := os.CreateTemp(dir, "."+filepath.Base(path)+".tmp-*")
-
 	if err != nil {
 		return err
 	}

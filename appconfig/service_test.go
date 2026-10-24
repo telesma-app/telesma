@@ -9,7 +9,7 @@ import (
 )
 
 func TestApplicationInfoIncludesVersion(t *testing.T) {
-	info := newService(filepath.Join(t.TempDir(), configFile)).GetApplicationInfo(context.Background())
+	info := (&Service{}).GetApplicationInfo(context.Background())
 
 	if info.Version == "" {
 		t.Fatal("application version is empty")
@@ -17,10 +17,9 @@ func TestApplicationInfoIncludesVersion(t *testing.T) {
 }
 
 func TestMissingConfigUsesDefaults(t *testing.T) {
-	service := newService(filepath.Join(t.TempDir(), configFile))
+	service := &Service{path: filepath.Join(t.TempDir(), configFile)}
 
 	snapshot, err := service.LoadApplicationConfig(context.Background())
-
 	if err != nil {
 		t.Fatalf("load missing config: %v", err)
 	}
@@ -40,7 +39,7 @@ func TestMissingConfigUsesDefaults(t *testing.T) {
 
 func TestConfigRoundTrip(t *testing.T) {
 	path := filepath.Join(t.TempDir(), configFile)
-	service := newService(path)
+	service := &Service{path: path}
 	want := ApplicationConfig{
 		Locale:                  "ru",
 		AdvancedMode:            true,
@@ -52,7 +51,6 @@ func TestConfigRoundTrip(t *testing.T) {
 	}
 
 	snapshot, err := service.LoadApplicationConfig(context.Background())
-
 	if err != nil {
 		t.Fatalf("load config: %v", err)
 	}
@@ -66,7 +64,6 @@ func TestConfigRoundTrip(t *testing.T) {
 	}
 
 	data, err := os.ReadFile(path)
-
 	if err != nil {
 		t.Fatalf("read saved config: %v", err)
 	}
@@ -96,7 +93,8 @@ func TestConfigRejectsInvalidInput(t *testing.T) {
 				t.Fatalf("write config: %v", err)
 			}
 
-			if _, err := newService(path).LoadApplicationConfig(context.Background()); err == nil {
+			service := &Service{path: path}
+			if _, err := service.LoadApplicationConfig(context.Background()); err == nil {
 				t.Fatal("load invalid config succeeded")
 			}
 		})
@@ -104,7 +102,7 @@ func TestConfigRejectsInvalidInput(t *testing.T) {
 }
 
 func TestConfigRejectsInvalidSave(t *testing.T) {
-	service := newService(filepath.Join(t.TempDir(), configFile))
+	service := &Service{path: filepath.Join(t.TempDir(), configFile)}
 	err := service.SaveApplicationConfig(context.Background(), ApplicationConfig{Locale: "de"})
 
 	if err == nil || !strings.Contains(err.Error(), "unsupported locale") {

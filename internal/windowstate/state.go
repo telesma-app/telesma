@@ -34,7 +34,6 @@ func Valid(state State, minWidth, minHeight int) bool {
 
 func Load(path string, minWidth, minHeight int) State {
 	data, err := os.ReadFile(path)
-
 	if err != nil {
 		return Default(minWidth, minHeight)
 	}
@@ -50,7 +49,6 @@ func Load(path string, minWidth, minHeight int) State {
 
 func Save(path string, state State) error {
 	data, err := json.Marshal(state)
-
 	if err != nil {
 		return err
 	}
@@ -60,7 +58,6 @@ func Save(path string, state State) error {
 
 func Path() (string, error) {
 	configDir, err := os.UserConfigDir()
-
 	if err != nil {
 		return "", err
 	}
@@ -70,7 +67,6 @@ func Path() (string, error) {
 
 func Restore(minWidth, minHeight int) (State, string) {
 	path, err := Path()
-
 	if err != nil {
 		return Default(minWidth, minHeight), ""
 	}
@@ -93,6 +89,7 @@ func (tracker *Tracker) RecordResize(width, height int, minimised, maximised, fu
 
 	tracker.mu.Lock()
 	defer tracker.mu.Unlock()
+
 	tracker.state.Maximised = maximised
 	if maximised || width < tracker.minWidth || height < tracker.minHeight {
 		return

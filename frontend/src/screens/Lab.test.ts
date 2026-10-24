@@ -1,3 +1,6 @@
+import { Info } from "../../bindings/github.com/telesma-app/kit/model/inspect";
+import { DescriptorState } from "../../bindings/github.com/telesma-app/kit/model/report";
+import { USBReport } from "../../bindings/github.com/telesma-app/kit/model/report";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { get } from "svelte/store";
@@ -10,7 +13,7 @@ import { Severity, Warning } from "../../bindings/github.com/telesma-app/kit/mod
 import { PublicKeyCredentialType } from "../../bindings/github.com/telesma-app/ctap/credential";
 import { ExtensionIdentifier } from "../../bindings/github.com/telesma-app/ctap/extension";
 import { Option } from "../../bindings/github.com/telesma-app/ctap/protocol";
-import { DeviceReport } from "../../bindings/github.com/telesma-app/kit/model/report";
+import { EndpointReport } from "../../bindings/github.com/telesma-app/kit/model/report";
 import { Mode } from "../../bindings/github.com/telesma-app/kit/transport";
 import {
   MakeCredentialInput,
@@ -19,7 +22,7 @@ import {
 import {
   MakeCredentialEnvelope,
   MakeCredentialRequest,
-  type InspectEnvelope,
+  type GetInfoEnvelope,
 } from "../../bindings/telesma/service";
 
 import { createLabState, labState as mutableLabState } from "$lib/features/lab/state";
@@ -27,7 +30,7 @@ import { setAppLocale } from "$lib/i18n";
 import { failureForCode } from "$lib/test-support/failure";
 import {
   resetAppStateForTest,
-  seedOverviewEnvelopeForTest,
+  seedGetInfoEnvelopeForTest,
   seedSelectionForTest,
 } from "$lib/test-support/store-utils";
 import { setStatusOperation } from "$lib/workbench-state";
@@ -45,11 +48,15 @@ vi.mock("$lib/features/lab", async (importOriginal) => ({
   runLabGetAssertion: controllerMocks.runGetAssertion,
 }));
 
-const token = new DeviceReport({
+const token = new EndpointReport({
   attachment: {
     id: "token-1",
     transport: Mode.ModeHID,
-    usb: { product: "Test authenticator", vendorId: 1, productId: 2 },
+    usb: new USBReport({
+      product: { state: DescriptorState.DescriptorRead, value: "Test authenticator" },
+      vendorId: { state: DescriptorState.DescriptorRead, value: 1 },
+      productId: { state: DescriptorState.DescriptorRead, value: 2 },
+    }),
   },
 });
 
@@ -165,13 +172,11 @@ describe("WebAuthn Lab screen", () => {
     const user = userEvent.setup();
 
     selectToken();
-    seedOverviewEnvelopeForTest({
-      result: {
-        info: {
-          extensions: [ExtensionIdentifier.ExtensionIdentifierHMACSecret],
-        },
-      },
-    } as unknown as InspectEnvelope);
+    seedGetInfoEnvelopeForTest({
+      result: new Info({
+        extensions: [ExtensionIdentifier.ExtensionIdentifierHMACSecret],
+      }),
+    } as unknown as GetInfoEnvelope);
     render(Lab);
 
     const make = stepLayout("MakeCredential");
@@ -297,14 +302,12 @@ describe("WebAuthn Lab screen", () => {
       const user = userEvent.setup();
 
       selectToken();
-      seedOverviewEnvelopeForTest({
-        result: {
-          info: {
-            extensions,
-            options,
-          },
-        },
-      } as unknown as InspectEnvelope);
+      seedGetInfoEnvelopeForTest({
+        result: new Info({
+          extensions,
+          options,
+        }),
+      } as unknown as GetInfoEnvelope);
       render(Lab);
 
       const make = stepLayout("MakeCredential");
@@ -334,11 +337,9 @@ describe("WebAuthn Lab screen", () => {
     const user = userEvent.setup();
 
     selectToken();
-    seedOverviewEnvelopeForTest({
-      result: {
-        info: { extensions },
-      },
-    } as unknown as InspectEnvelope);
+    seedGetInfoEnvelopeForTest({
+      result: new Info({ extensions }),
+    } as unknown as GetInfoEnvelope);
     render(Lab);
 
     const make = stepLayout("MakeCredential");

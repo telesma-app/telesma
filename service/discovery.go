@@ -30,6 +30,7 @@ func (s *Service) ensureDeviceManager(ctx context.Context) error {
 
 		return nil
 	}
+
 	open := s.openDeviceManager
 	deviceContext := s.deviceContext
 	s.mu.Unlock()
@@ -38,26 +39,31 @@ func (s *Service) ensureDeviceManager(ctx context.Context) error {
 	if err != nil {
 		return ctapkit.NormalizeError(err, failure.PhaseDiscovery)
 	}
+
 	initial, ok := manager.Next()
 	if !ok {
 		_ = manager.Close()
 
 		return closedServiceError(failure.PhaseDiscovery)
 	}
+
 	done := make(chan struct{})
 
 	s.mu.Lock()
 	if s.closed {
 		s.mu.Unlock()
+
 		_ = manager.Close()
 
 		return closedServiceError(failure.PhaseDiscovery)
 	}
+
 	s.devices = manager
 	s.devicesDone = done
 	s.mu.Unlock()
 
 	snapshot := s.applyDeviceUpdate(initial)
+
 	s.emit(EventDiscoveryChanged, DiscoveryChangedEnvelope{Snapshot: snapshot})
 	go s.forwardDeviceUpdates(manager, done)
 
@@ -84,10 +90,12 @@ func (s *Service) forwardDeviceUpdates(
 		s.mu.Lock()
 		current := s.devices
 		s.mu.Unlock()
+
 		if current == manager {
 			snapshot := s.applyDeviceUpdate(update)
 			s.emit(EventDiscoveryChanged, DiscoveryChangedEnvelope{Snapshot: snapshot})
 		}
+
 		unlock()
 	}
 }
@@ -111,13 +119,23 @@ func (s *Service) sessionSnapshotLocked() AuthenticatorSessionSnapshot {
 	if devices == nil {
 		devices = []report.DeviceReport{}
 	}
+
+	endpoints := s.deviceSnapshot.Endpoints
+	if endpoints == nil {
+		endpoints = []report.EndpointReport{}
+	}
+
 	snapshot := AuthenticatorSessionSnapshot{
-		Devices: devices,
-		Error:   s.deviceError,
+		Devices:              devices,
+		SelectedAttachmentID: s.deviceSnapshot.SelectedEndpoint,
+		SelectedDeviceID:     s.deviceSnapshot.Selected,
+		Endpoints:            endpoints,
+		Error:                s.deviceError,
 	}
 	if s.selected != nil {
 		snapshot.Selection = &ActiveSelection{
 			ID:           s.selected.id,
+			DeviceID:     s.deviceSnapshot.Selected,
 			AttachmentID: s.selected.device.Attachment.ID,
 		}
 	}

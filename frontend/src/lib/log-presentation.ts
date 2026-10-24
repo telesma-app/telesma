@@ -13,7 +13,9 @@ export function logSummary(record: LogRecord) {
 
 export function operationKindLabel(kind: OperationKind | undefined) {
   switch (kind) {
-    case OperationKind.Inspect:
+    case OperationKind.ReadSources:
+      return m.reload_overview();
+    case OperationKind.GetInfo:
       return m.overview();
     case OperationKind.ListCredentials:
       return m.credential_inventory();

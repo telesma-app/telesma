@@ -15,7 +15,7 @@ describe("runtimeFailureFrom", () => {
     const failure = new Failure({
       code: Code.CodeAuthenticatorClosed,
       category: Category.CategoryInvalidState,
-      operation: "inspect",
+      operation: "getInfo",
       phase: Phase.PhaseAuthenticator,
     });
 

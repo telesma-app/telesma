@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ExtensionIdentifier } from "../../../../bindings/github.com/telesma-app/ctap/extension";
-  import type { InspectEnvelope } from "../../../../bindings/telesma/service";
+  import type { GetInfoEnvelope } from "../../../../bindings/telesma/service";
   import { Plus, Trash2 } from "@lucide/svelte";
 
   import * as Alert from "$lib/components/ui/alert";
@@ -9,7 +9,7 @@
   import { Input } from "$lib/components/ui/input";
   import { Switch } from "$lib/components/ui/switch";
   import * as ToggleGroup from "$lib/components/ui/toggle-group";
-  import { inspectResult } from "$lib/ctapkit-results";
+  import { getInfoResult } from "$lib/ctapkit-results";
   import type {
     GetAssertionExtensionsDraft,
     LabDescriptorDraft,
@@ -33,7 +33,7 @@
     value: GetAssertionExtensionsDraft;
     allowList: LabDescriptorDraft[];
     disabled?: boolean;
-    inspection: LoadState<InspectEnvelope>;
+    inspection: LoadState<GetInfoEnvelope>;
     errors: LabValidationIssue[];
     onChange: (value: GetAssertionExtensionsDraft) => void;
     onRetryInspection: () => void;
@@ -62,7 +62,7 @@
   function status(identifier: ExtensionIdentifier): ExtensionStatus {
     if (inspection.state !== "ready") return "unknown";
 
-    const info = inspectResult(inspection.data)?.info;
+    const info = getInfoResult(inspection.data);
 
     return info && authenticatorSupportsLabExtension(info, identifier)
       ? "supported"

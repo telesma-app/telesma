@@ -36,7 +36,7 @@ import type {
   CredentialDeleteEnvelope,
   CredentialUpdateEnvelope,
   CredentialsEnvelope,
-  InspectEnvelope,
+  GetInfoEnvelope,
   LargeBlobListEnvelope,
   LargeBlobDecodeEnvelope,
   LargeBlobMutationEnvelope,
@@ -52,7 +52,7 @@ import type {
   MakeCredentialResult,
 } from "../../bindings/github.com/telesma-app/kit/model/webauthn";
 
-export function inspectResult(envelope: InspectEnvelope | null | undefined) {
+export function getInfoResult(envelope: GetInfoEnvelope | null | undefined) {
   return envelope?.result ?? null;
 }
 

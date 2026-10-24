@@ -44,7 +44,7 @@
   {/if}
 {/snippet}
 
-<Card.Root class="standard-hero-card">
+<Card.Root class="standard-hero-card" aria-label={hero.title}>
   <Card.Header>
     <div class="standard-device-identity">
       <div class="standard-device-icon">

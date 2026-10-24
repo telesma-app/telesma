@@ -1,5 +1,5 @@
 import type { LookupResult, StatusReport } from "../../bindings/github.com/telesma-app/mds/model";
-import type { DeviceReport } from "../../bindings/github.com/telesma-app/kit/model/report";
+import type { EndpointReport } from "../../bindings/github.com/telesma-app/kit/model/report";
 
 import {
   factBoolean,
@@ -25,7 +25,7 @@ type StandardPresentationInput = {
   facts: OverviewFactLookup;
   mdsState: OverviewMDSState;
   mds: LookupResult | null;
-  device: DeviceReport | null;
+  device: EndpointReport | null;
 };
 
 type VersionSummary = {
@@ -493,7 +493,7 @@ function passkeySummary(
   return { value: overviewStatusLabel(status), tone: toneForStatus(status) };
 }
 
-function transportSummary(facts: OverviewFactLookup, device: DeviceReport | null) {
+function transportSummary(facts: OverviewFactLookup, device: EndpointReport | null) {
   const transportFact = overviewFact(facts, FactID.FactIDTransports);
   const transports =
     transportFact.state === FactState.FactStateUnknown

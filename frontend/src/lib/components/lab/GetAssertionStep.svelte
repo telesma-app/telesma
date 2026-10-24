@@ -1,9 +1,9 @@
 <script lang="ts">
   import { tick } from "svelte";
 
-  import type { DeviceReport } from "../../../../bindings/github.com/telesma-app/kit/model/report";
+  import type { EndpointReport } from "../../../../bindings/github.com/telesma-app/kit/model/report";
   import type { CredentialVerificationMaterial } from "../../../../bindings/github.com/telesma-app/kit/model/webauthn";
-  import type { InspectEnvelope } from "../../../../bindings/telesma/service";
+  import type { GetInfoEnvelope } from "../../../../bindings/telesma/service";
 
   import type { GetAssertionDraft, LabState } from "$lib/features/lab/state";
   import { validateGetAssertionDraft } from "$lib/lab-input";
@@ -19,8 +19,8 @@
 
   type Props = {
     lab: LabState;
-    inspection: LoadState<InspectEnvelope>;
-    device: DeviceReport;
+    inspection: LoadState<GetInfoEnvelope>;
+    device: EndpointReport;
     disabled?: boolean;
     fillDemoDisabled?: boolean;
     onDraftChange: (patch: Partial<GetAssertionDraft>) => void;

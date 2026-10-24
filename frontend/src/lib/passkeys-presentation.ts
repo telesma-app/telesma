@@ -3,7 +3,7 @@ import type {
   CredentialRecord,
   InventoryReport,
 } from "../../bindings/github.com/telesma-app/kit/model/credentials";
-import type { DeviceReport } from "../../bindings/github.com/telesma-app/kit/model/report";
+import type { EndpointReport } from "../../bindings/github.com/telesma-app/kit/model/report";
 import type { PasskeyDirectoryMatch } from "../../bindings/telesma/passkeydirectory";
 
 import { m } from "../paraglide/messages.js";
@@ -48,7 +48,7 @@ export type PasskeysCapacity = {
 
 export type PasskeysPresentationInput = {
   selectedSelector: string;
-  selectedDevice: DeviceReport | null;
+  selectedDevice: EndpointReport | null;
   authenticatorBusy: boolean;
   authenticatorReady: boolean;
   inventoryState: PasskeysInventoryState;

@@ -19,9 +19,6 @@ import * as extension$0 from "../../../ctap/extension/models.js";
 import * as protocol$0 from "../../../ctap/protocol/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as report$0 from "../report/models.js";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore: Unused imports
 import * as uuid$0 from "../../../../../uuid/models.js";
 
 /**
@@ -378,39 +375,6 @@ export class Info {
     }
 }
 
-export class Result {
-    "device": report$0.DeviceReport;
-    "info": Info;
-
-    /** Creates a new Result instance. */
-    constructor($$source: Partial<Result> = {}) {
-        if (!("device" in $$source)) {
-            this["device"] = (new report$0.DeviceReport());
-        }
-        if (!("info" in $$source)) {
-            this["info"] = (new Info());
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new Result instance from a string or object.
-     */
-    static createFrom($$source: any = {}): Result {
-        const $$createField0_0 = $$createType18;
-        const $$createField1_0 = $$createType19;
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        if ("device" in $$parsedSource) {
-            $$parsedSource["device"] = $$createField0_0($$parsedSource["device"]);
-        }
-        if ("info" in $$parsedSource) {
-            $$parsedSource["info"] = $$createField1_0($$parsedSource["info"]);
-        }
-        return new Result($$parsedSource as Partial<Result>);
-    }
-}
-
 // Private type creation functions
 const $$createType0 = Fact.createFrom;
 const $$createType1 = $Create.Array($$createType0);
@@ -435,5 +399,3 @@ const $$createType14 = $Create.Array($Create.Any);
 const $$createType15 = $Create.Array($Create.Any);
 const $$createType16 = $Create.Array($Create.Any);
 const $$createType17 = Assessment.createFrom;
-const $$createType18 = report$0.DeviceReport.createFrom;
-const $$createType19 = Info.createFrom;

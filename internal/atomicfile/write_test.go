@@ -19,7 +19,6 @@ func TestWriteFileReplacesTarget(t *testing.T) {
 	}
 
 	data, err := os.ReadFile(path)
-
 	if err != nil {
 		t.Fatalf("read replaced file: %v", err)
 	}
@@ -46,7 +45,6 @@ func TestWriteFileKeepsTargetOnReplacementFailure(t *testing.T) {
 	}
 
 	err := WriteFile(path, []byte("state"), 0o600, 0o700)
-
 	if err == nil {
 		t.Fatal("write succeeded with a directory as its target")
 	}
@@ -64,7 +62,6 @@ func assertNoTemporaryFiles(t *testing.T, dir, target string) {
 	t.Helper()
 
 	temporary, err := filepath.Glob(filepath.Join(dir, "."+target+".tmp-*"))
-
 	if err != nil {
 		t.Fatalf("find temporary files: %v", err)
 	}

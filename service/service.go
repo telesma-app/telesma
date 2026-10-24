@@ -10,6 +10,7 @@ import (
 	"github.com/telesma-app/kit/model/failure"
 	"github.com/telesma-app/kit/model/report"
 	"github.com/telesma-app/kit/transport"
+	"github.com/telesma-app/mds"
 )
 
 type EventEmitter interface {
@@ -25,7 +26,10 @@ type Option func(*Service)
 
 type deviceManagerRuntime interface {
 	Next() (deviceManagerState, bool)
-	Select(context.Context, report.AttachmentID) error
+	Select(context.Context, report.DeviceID) error
+	SelectEndpoint(context.Context, report.AttachmentID) error
+	RefreshSources(context.Context, report.DeviceID) error
+	RefreshMetadata(context.Context, report.AttachmentID, *mds.Client, mds.LookupOptions) (report.EndpointReport, error)
 	Close() error
 }
 
@@ -108,6 +112,7 @@ func (s *Service) cancelOperation(id OperationID) bool {
 	s.mu.Lock()
 
 	selected := s.selected
+
 	var operation *operationState
 
 	if selected != nil {
@@ -185,10 +190,7 @@ func (s *Service) unregisterOperation(selected *selection, id OperationID) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if operation, ok := selected.operations[id]; ok {
-		close(operation.done)
-	}
-
+	close(selected.operations[id].done)
 	delete(selected.operations, id)
 }
 
@@ -245,6 +247,7 @@ func (s *Service) emitOperationEvent(operation *operationState, event model.Oper
 		selected.operations[operation.id] == operation
 
 	s.mu.Unlock()
+
 	if !ok {
 		return
 	}
@@ -273,6 +276,7 @@ func (h interactionHandler) RequestInteraction(ctx context.Context, req model.In
 	response := make(chan model.InteractionResponse)
 
 	h.service.registerInteraction(prompt.InteractionID, response, h.done)
+
 	h.service.emit(EventInteractionRequested, prompt)
 	defer h.service.unregisterInteraction(prompt.InteractionID)
 

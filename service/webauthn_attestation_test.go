@@ -13,12 +13,12 @@ import (
 
 func TestAssessMakeCredentialAttestationMarksNoneNotApplicable(t *testing.T) {
 	aaguid := uuid.MustParse("eabb46cc-e241-80bf-ae9e-96fa6d2975cf")
+
 	raw, err := cbor.Marshal(ctapattestation.Object{
 		Format:    ctapattestation.AttestationStatementFormatIdentifierNone,
 		AuthData:  []byte{1},
 		Statement: map[string]any{},
 	})
-
 	if err != nil {
 		t.Fatalf("marshal attestation object: %v", err)
 	}
@@ -66,6 +66,7 @@ func TestAssessMakeCredentialAttestationRejectsMalformedEvidence(t *testing.T) {
 
 func TestAssessMakeCredentialAttestationRequiresVerifiedBasicStatement(t *testing.T) {
 	aaguid := uuid.MustParse("eabb46cc-e241-80bf-ae9e-96fa6d2975cf")
+
 	raw, err := cbor.Marshal(ctapattestation.Object{
 		Format:   ctapattestation.AttestationStatementFormatIdentifierPacked,
 		AuthData: []byte{1},
@@ -75,7 +76,6 @@ func TestAssessMakeCredentialAttestationRequiresVerifiedBasicStatement(t *testin
 			"x5c": [][]byte{{1}},
 		},
 	})
-
 	if err != nil {
 		t.Fatalf("marshal attestation object: %v", err)
 	}

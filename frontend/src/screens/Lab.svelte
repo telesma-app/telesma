@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { authenticatorGetInfo } from "$lib/features/authenticator";
+  import { loadGetInfo } from "$lib/overview-controller";
   import { tick } from "svelte";
   import { TriangleAlert } from "@lucide/svelte";
 
@@ -33,13 +35,7 @@
     updateLabMakeCredentialDraft,
   } from "$lib/features/lab";
   import { labState } from "$lib/features/lab";
-  import {
-    authenticatorInspection,
-    authenticatorBusy,
-    selectedDevice,
-    selectedSelector,
-  } from "$lib/features/authenticator";
-  import { reloadOverview } from "$lib/features/overview";
+  import { authenticatorBusy, selectedDevice, selectedSelector } from "$lib/features/authenticator";
 
   import { m } from "../paraglide/messages.js";
 
@@ -103,7 +99,7 @@
       <Tabs.Content value="make" class="lab-operation-panel">
         <MakeCredentialStep
           lab={$labState}
-          inspection={$authenticatorInspection}
+          inspection={$authenticatorGetInfo}
           device={$selectedDevice}
           disabled={controlsDisabled}
           fillDemoDisabled={demoValuesDisabled}
@@ -117,7 +113,7 @@
           onHandoff={handleHandoff}
           onRetryAttestationTrust={retryLabMakeCredentialAttestationTrust}
           onRetryVerification={retryLabMakeCredentialVerification}
-          onRetryInspection={reloadOverview}
+          onRetryInspection={loadGetInfo}
           onFillDemoValues={fillLabDemoValues}
         />
       </Tabs.Content>
@@ -125,7 +121,7 @@
       <Tabs.Content value="get" class="lab-operation-panel">
         <GetAssertionStep
           lab={$labState}
-          inspection={$authenticatorInspection}
+          inspection={$authenticatorGetInfo}
           device={$selectedDevice}
           disabled={controlsDisabled}
           fillDemoDisabled={demoValuesDisabled}
@@ -138,7 +134,7 @@
           onNewRun={newLabGetAssertionRun}
           onVerificationMaterialChange={updateLabVerificationMaterial}
           onRetryVerification={retryLabGetAssertionVerification}
-          onRetryInspection={reloadOverview}
+          onRetryInspection={loadGetInfo}
           onFillDemoValues={fillLabDemoValues}
         />
       </Tabs.Content>

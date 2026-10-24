@@ -25,19 +25,16 @@ func (s *Service) AssessMakeCredentialAttestation(
 	req MakeCredentialAttestationAssessmentRequest,
 ) mdsmodel.AttestationTrustAssessment {
 	aaguid, err := uuid.Parse(req.Result.AAGUID)
-
 	if err != nil {
 		return unavailableAttestationAssessment(mdsmodel.AttestationTrustIssueEvidenceMalformed)
 	}
 
 	raw, err := hex.DecodeString(req.Result.AttestationObjectCBORHex)
-
 	if err != nil {
 		return unavailableAttestationAssessment(mdsmodel.AttestationTrustIssueEvidenceMalformed)
 	}
 
 	object, err := ctapattestation.ParseObject(raw)
-
 	if err != nil {
 		return unavailableAttestationAssessment(mdsmodel.AttestationTrustIssueEvidenceMalformed)
 	}

@@ -133,8 +133,8 @@ export function GetAssertion(req: $models.GetAssertionRequest): $CancellableProm
     });
 }
 
-export function Inspect(req: $models.OperationRequest): $CancellablePromise<$models.InspectEnvelope> {
-    return $Call.ByID(3574876855, req).then(($result: any) => {
+export function GetInfo(req: $models.OperationRequest): $CancellablePromise<$models.GetInfoEnvelope> {
+    return $Call.ByID(2113550131, req).then(($result: any) => {
         return $$createType14($result);
     });
 }
@@ -175,8 +175,24 @@ export function ReadLogs(req: $models.ReadLogsRequest): $CancellablePromise<mode
     });
 }
 
+/**
+ * ReadSources reads local observations independently of CTAP workflow readiness.
+ * Source outcomes are published through session snapshots.
+ */
+export function ReadSources(req: $models.SelectionRequest): $CancellablePromise<void> {
+    return $Call.ByID(2308807473, req);
+}
+
 export function ReconnectSelection(): $CancellablePromise<void> {
     return $Call.ByID(2068708288);
+}
+
+/**
+ * RefreshMetadata refreshes the attachment's AAGUID lookup without running a
+ * CTAP workflow. Source outcomes are published through session snapshots.
+ */
+export function RefreshMetadata(req: $models.MetadataRequest): $CancellablePromise<void> {
+    return $Call.ByID(3932584865, req);
 }
 
 export function ResetFactory(req: $models.ResetFactoryRequest): $CancellablePromise<$models.ResetFactoryEnvelope> {
@@ -193,6 +209,10 @@ export function SetAlwaysUV(req: $models.AlwaysUVRequest): $CancellablePromise<$
     return $Call.ByID(864302713, req).then(($result: any) => {
         return $$createType12($result);
     });
+}
+
+export function SetEndpointSelection(req: $models.EndpointSelectionRequest): $CancellablePromise<void> {
+    return $Call.ByID(3969467904, req);
 }
 
 export function SetMinPINLength(req: $models.MinPINLengthRequest): $CancellablePromise<$models.AuthenticatorConfigEnvelope> {
@@ -250,7 +270,7 @@ const $$createType10 = $models.LargeBlobMutationEnvelope.createFrom;
 const $$createType11 = webauthn$0.PreviewSignARKGP256Derivation.createFrom;
 const $$createType12 = $models.AuthenticatorConfigEnvelope.createFrom;
 const $$createType13 = $models.GetAssertionEnvelope.createFrom;
-const $$createType14 = $models.InspectEnvelope.createFrom;
+const $$createType14 = $models.GetInfoEnvelope.createFrom;
 const $$createType15 = $models.CredentialsEnvelope.createFrom;
 const $$createType16 = $models.LargeBlobListEnvelope.createFrom;
 const $$createType17 = $models.MDSLookupEnvelope.createFrom;

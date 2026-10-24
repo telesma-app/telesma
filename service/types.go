@@ -41,18 +41,26 @@ type DiscoveryChangedEnvelope struct {
 }
 
 type SelectionRequest struct {
+	DeviceID report.DeviceID `json:"deviceId"`
+}
+
+type EndpointSelectionRequest struct {
 	AttachmentID report.AttachmentID `json:"attachmentId"`
 }
 
 type ActiveSelection struct {
+	DeviceID     report.DeviceID     `json:"deviceId"`
 	ID           SelectionID         `json:"id"`
 	AttachmentID report.AttachmentID `json:"attachmentId"`
 }
 
 type AuthenticatorSessionSnapshot struct {
-	Devices   []report.DeviceReport `json:"devices"`
-	Selection *ActiveSelection      `json:"selection,omitempty"`
-	Error     *failure.Failure      `json:"error,omitempty"`
+	Endpoints            []report.EndpointReport `json:"endpoints"`
+	SelectedDeviceID     report.DeviceID         `json:"selectedDeviceId"`
+	Devices              []report.DeviceReport   `json:"devices"`
+	SelectedAttachmentID report.AttachmentID     `json:"selectedAttachmentId"`
+	Selection            *ActiveSelection        `json:"selection,omitempty"`
+	Error                *failure.Failure        `json:"error,omitempty"`
 }
 
 type OperationEnvelopeMeta struct {
@@ -63,9 +71,14 @@ type OperationEnvelopeMeta struct {
 	Error               *failure.Failure `json:"error,omitempty"`
 }
 
-type InspectEnvelope struct {
+type MetadataRequest struct {
+	AttachmentID report.AttachmentID `json:"attachmentId"`
+	Refresh      bool                `json:"refresh"`
+}
+
+type GetInfoEnvelope struct {
 	OperationEnvelopeMeta
-	Result *inspect.Result `json:"result,omitempty"`
+	Result *inspect.Info `json:"result,omitempty"`
 }
 
 type CredentialsEnvelope struct {
@@ -180,4 +193,5 @@ type MDSLookupRequest struct {
 
 type MDSLookupEnvelope struct {
 	Result mdsmodel.LookupResult `json:"result"`
+	Error  *failure.Failure      `json:"error,omitempty"`
 }

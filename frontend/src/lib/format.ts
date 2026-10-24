@@ -1,35 +1,75 @@
-import type { DeviceReport } from "../../bindings/github.com/telesma-app/kit/model/report";
+import type { EndpointReport } from "../../bindings/github.com/telesma-app/kit/model/report";
+import {
+  DescriptorState,
+  SourceState,
+} from "../../bindings/github.com/telesma-app/kit/model/report";
 import { Mode } from "../../bindings/github.com/telesma-app/kit/transport";
 
 import { m } from "../paraglide/messages.js";
 
-export function labelDevice(device: DeviceReport | null | undefined) {
+export function labelDevice(
+  device: EndpointReport | null | undefined,
+  endpoints: EndpointReport[] = device ? [device] : [],
+) {
   if (!device) return m.no_token_selected();
 
-  const name = deviceName(device);
+  const name = deviceName(device, endpoints);
   const serialValue = deviceDetail(device);
   const serial = serialValue ? ` · ${serialValue}` : "";
 
   return `${name || device.attachment.id || m.authenticator()}${serial}`;
 }
 
-export function deviceName(device: DeviceReport | null | undefined) {
+export function deviceName(
+  device: EndpointReport | null | undefined,
+  endpoints: EndpointReport[] = device ? [device] : [],
+) {
   if (!device) return m.no_token_selected();
 
-  return (
-    device.identity?.name?.trim() ||
-    device.attachment.usb?.product?.trim() ||
-    device.attachment.usb?.manufacturer?.trim() ||
-    (device.attachment.transport === Mode.ModeSmartCard ? m.fido_smart_card() : "") ||
-    device.attachment.id ||
-    m.authenticator()
-  );
+  for (const endpoint of endpoints) {
+    const name = vendorModelName(endpoint);
+    if (name) return name;
+  }
+
+  for (const endpoint of endpoints) {
+    const usb = endpoint.attachment.usb;
+    if (usb?.product.state === DescriptorState.DescriptorRead && usb.product.value!.trim())
+      return usb.product.value!.trim();
+  }
+  for (const endpoint of endpoints) {
+    const usb = endpoint.attachment.usb;
+    if (
+      usb?.manufacturer.state === DescriptorState.DescriptorRead &&
+      usb.manufacturer.value!.trim()
+    )
+      return usb.manufacturer.value!.trim();
+  }
+  return device.attachment.transport === Mode.ModeSmartCard
+    ? device.attachment.smartCard!.fidoApplication.state === SourceState.SourceAvailable
+      ? m.fido_smart_card()
+      : m.smart_card()
+    : m.authenticator();
 }
 
-export function deviceDetail(device: DeviceReport | null | undefined) {
-  if (!device) return "";
+function vendorModelName(device: EndpointReport) {
+  const yubico = device.sources.yubico.modelName?.trim();
+  if (yubico) return yubico;
 
-  return device.identity?.serialNumber || device.attachment.usb?.reportedSerial || "";
+  const model = device.sources.token2.data?.model;
+  if (!model?.formFactor.trim()) return "";
+
+  // Token2 Model.Name joins these catalogue fields; release is a separate revision.
+  return !model.branding || model.formFactor.startsWith(`${model.branding} `)
+    ? model.formFactor
+    : `${model.branding} ${model.formFactor}`;
+}
+
+export function deviceDetail(device: EndpointReport | null | undefined) {
+  if (!device) return "";
+  const serial = device.attachment.usb?.reportedSerial;
+  return serial?.state === DescriptorState.DescriptorRead && serial.value
+    ? `USB S/N ${serial.value}`
+    : "";
 }
 
 export function authenticatorStateLabel(value: unknown) {

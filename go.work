@@ -10,4 +10,6 @@ use (
 	../pcsc
 	../token2
 	../yubico
+	../windows-proxy
+	../wails/v3
 )

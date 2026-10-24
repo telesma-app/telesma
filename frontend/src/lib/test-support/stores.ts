@@ -1,6 +1,6 @@
 export {
   authenticatorBusy,
-  authenticatorInspection,
+  authenticatorGetInfo,
   authenticatorStatus,
   devices,
   selectedDevice,
@@ -20,7 +20,7 @@ export {
   largeBlobsVerificationFlow,
 } from "$lib/features/largeblobs";
 export { largeBlobsPayloadEncoding } from "$lib/features/largeblobs/state";
-export { overviewBioSensor, overviewMDS } from "$lib/features/overview";
+export { overviewBioSensor } from "$lib/features/overview";
 export {
   passkeysInventoryState,
   passkeysMutation,

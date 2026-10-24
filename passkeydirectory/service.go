@@ -107,7 +107,6 @@ func (s *Service) LookupPasskeyDirectory(
 	defer s.mu.Unlock()
 
 	current, err := s.resolveCatalog(ctx)
-
 	if err != nil {
 		return PasskeyDirectoryLookupResult{}, err
 	}
@@ -134,7 +133,6 @@ func (s *Service) resolveCatalog(ctx context.Context) (*snapshot, error) {
 	}
 
 	refreshed, err := s.refresh(ctx, s.current, now)
-
 	if err == nil {
 		s.current = refreshed
 
@@ -154,7 +152,6 @@ func (s *Service) refresh(
 	now time.Time,
 ) (*snapshot, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.source, nil)
-
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +167,6 @@ func (s *Service) refresh(
 	}
 
 	resp, err := s.httpClient.Do(req)
-
 	if err != nil {
 		return nil, fmt.Errorf("fetch Passkey Directory dataset: %w", err)
 	}
@@ -203,13 +199,11 @@ func (s *Service) refresh(
 	}
 
 	signedMessage, err := readLimited(resp.Body, maxSignedBytes)
-
 	if err != nil {
 		return nil, fmt.Errorf("read Passkey Directory dataset: %w", err)
 	}
 
 	index, err := verifyAndIndex(signedMessage, s.keyring)
-
 	if err != nil {
 		return nil, err
 	}
@@ -238,15 +232,16 @@ func (s *Service) loadCache() (*snapshot, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	defer func() { _ = file.Close() }()
 
 	data, err := readLimited(file, maxCacheBytes)
-
 	if err != nil {
 		return nil, err
 	}
 
 	var record cacheRecord
+
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
 
@@ -263,7 +258,6 @@ func (s *Service) loadCache() (*snapshot, error) {
 	}
 
 	index, err := verifyAndIndex(record.SignedMessage, s.keyring)
-
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +267,6 @@ func (s *Service) loadCache() (*snapshot, error) {
 
 func (s *Service) storeCache(record cacheRecord) error {
 	data, err := json.Marshal(record)
-
 	if err != nil {
 		return err
 	}
@@ -283,7 +276,6 @@ func (s *Service) storeCache(record cacheRecord) error {
 
 func defaultCachePath() (string, error) {
 	dir, err := os.UserCacheDir()
-
 	if err != nil {
 		return "", err
 	}
@@ -293,7 +285,6 @@ func defaultCachePath() (string, error) {
 
 func mustTrustedKeyring() openpgp.EntityList {
 	keyring, err := openpgp.ReadArmoredKeyRing(bytes.NewReader(trustedKey))
-
 	if err != nil {
 		panic(fmt.Sprintf("parse embedded Passkey Directory key: %v", err))
 	}
@@ -320,7 +311,6 @@ func verifyAndIndex(
 	}
 
 	message, err := openpgp.ReadMessage(bytes.NewReader(signedMessage), keyring, nil, nil)
-
 	if err != nil {
 		return nil, fmt.Errorf("parse signed Passkey Directory dataset: %w", err)
 	}
@@ -330,7 +320,6 @@ func verifyAndIndex(
 	}
 
 	payload, err := readLimited(message.UnverifiedBody, maxPayloadBytes)
-
 	if err != nil {
 		return nil, fmt.Errorf("read signed Passkey Directory payload: %w", err)
 	}
@@ -340,7 +329,6 @@ func verifyAndIndex(
 	}
 
 	index, err := parseCatalog(payload)
-
 	if err != nil {
 		return nil, fmt.Errorf("parse Passkey Directory payload: %w", err)
 	}
@@ -350,6 +338,7 @@ func verifyAndIndex(
 
 func parseCatalog(payload []byte) (catalog, error) {
 	var entries map[string]directoryEntry
+
 	decoder := json.NewDecoder(bytes.NewReader(payload))
 
 	if err := decoder.Decode(&entries); err != nil {
@@ -536,7 +525,6 @@ func responseHeader(resp *http.Response, name, fallback string) string {
 
 func readLimited(reader io.Reader, limit int64) ([]byte, error) {
 	data, err := io.ReadAll(io.LimitReader(reader, limit+1))
-
 	if err != nil {
 		return nil, err
 	}
@@ -550,6 +538,7 @@ func readLimited(reader io.Reader, limit int64) ([]byte, error) {
 
 func requireJSONEOF(decoder *json.Decoder) error {
 	var extra any
+
 	err := decoder.Decode(&extra)
 
 	if errors.Is(err, io.EOF) {
