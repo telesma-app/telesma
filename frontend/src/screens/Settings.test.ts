@@ -49,7 +49,7 @@ describe("Settings", () => {
 
     render(Settings);
 
-    await user.click(screen.getByRole("button", { name: "Language" }));
+    await user.click(screen.getByRole("combobox", { name: "Language" }));
     await user.click(screen.getByText("Russian"));
 
     await waitFor(() =>

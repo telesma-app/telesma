@@ -98,6 +98,8 @@ describe("SecurityPIN", () => {
     await user.type(screen.getByLabelText("New PIN"), "123456");
     await user.type(screen.getByLabelText("Confirm new PIN"), "123456");
     await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
     await fireEvent.click(screen.getByRole("button", { name: "Set PIN" }));
 
     expect(screen.getByLabelText("New PIN")).toHaveValue("");
@@ -139,7 +141,7 @@ describe("SecurityPIN", () => {
     await user.type(screen.getByLabelText("Confirm new PIN"), "escape-secret");
     await user.keyboard("{Escape}");
 
-    expect(screen.queryByLabelText("New PIN")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByLabelText("New PIN")).not.toBeInTheDocument());
     expect(trigger).toHaveFocus();
 
     await fireEvent.click(trigger);

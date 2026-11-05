@@ -310,7 +310,7 @@ describe("Passkeys", () => {
     expect(within(details).queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
     expect(relyingParty).toHaveAttribute("aria-current", "page");
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Selected passkey" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Selected passkey" })).not.toBeInTheDocument();
     expect(within(details).getByRole("heading", { name: "Example User" })).toBeInTheDocument();
     expect(within(details).getByText("public-key")).toBeInTheDocument();
     expect(within(details).getAllByText("01").length).toBeGreaterThan(0);
@@ -605,7 +605,7 @@ describe("Passkeys", () => {
 
     expect(screen.getByText("public-key")).toBeInTheDocument();
     expect(relyingParty).toHaveAttribute("aria-current", "page");
-    expect(screen.queryByRole("button", { name: "Selected passkey" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Selected passkey" })).not.toBeInTheDocument();
   });
 
   it("supports keyboard selection through semantic RP buttons", async () => {
@@ -625,7 +625,7 @@ describe("Passkeys", () => {
     await user.keyboard("{Enter}");
 
     expect(relyingParty).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("button", { name: "Selected passkey" })).toHaveTextContent(
+    expect(screen.getByRole("combobox", { name: "Selected passkey" })).toHaveTextContent(
       "Alice · alice@team.example",
     );
   });
@@ -691,11 +691,11 @@ describe("Passkeys", () => {
 
     expect(within(navigation).getAllByRole("button")).toHaveLength(2);
     expect(solo).toHaveAttribute("aria-current", "page");
-    expect(screen.queryByRole("button", { name: "Selected passkey" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Selected passkey" })).not.toBeInTheDocument();
 
     await user.click(team);
 
-    const credential = screen.getByRole("button", { name: "Selected passkey" });
+    const credential = screen.getByRole("combobox", { name: "Selected passkey" });
 
     expect(team).toHaveAttribute("aria-current", "page");
     expect(screen.getByText("Passkey 1 of 2")).toBeInTheDocument();
@@ -705,7 +705,7 @@ describe("Passkeys", () => {
     await user.keyboard("{ArrowDown}{Enter}");
 
     expect(screen.getByText("Passkey 2 of 2")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Selected passkey" })).toHaveTextContent(
+    expect(screen.getByRole("combobox", { name: "Selected passkey" })).toHaveTextContent(
       "Bob · bob@team.example",
     );
     expect(screen.getByTitle("b2")).toBeInTheDocument();

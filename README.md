@@ -25,10 +25,10 @@ Available operations depend on the capabilities and state of the connected authe
 - Native Wails build dependencies for your platform
 - A locally accessible FIDO authenticator and a supported transport
 
-This repository pins Wails and `@wailsio/runtime` to `v3.0.0-beta.31`. Install the matching CLI:
+This repository pins Wails and `@wailsio/runtime` to `v3.1.0`. Install the matching CLI:
 
 ```sh
-go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.31
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.1.0
 ```
 
 Check the platform dependencies with the instructions in the [Wails 3 documentation](https://v3.wails.io/).
