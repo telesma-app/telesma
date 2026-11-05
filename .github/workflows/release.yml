@@ -65,6 +65,8 @@ jobs:
       - quality
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
+    env:
+      WAILS_PUREGO: "1"
     permissions:
       contents: read
     strategy:
