@@ -1,12 +1,12 @@
 module telesma
 
-go 1.27.0
+go 1.27.3
 
 require (
 	github.com/ProtonMail/go-crypto v1.5.2
 	github.com/fxamacker/cbor/v2 v2.10.0
 	github.com/pelletier/go-toml/v2 v2.4.3
-	github.com/telesma-app/ctap v0.52.0
+	github.com/telesma-app/ctap v0.53.0
 	github.com/telesma-app/kit v0.21.0
 	github.com/telesma-app/mds v0.6.1
 	github.com/wailsapp/wails/v3 v3.1.0
@@ -25,12 +25,13 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/stretchr/testify v1.12.1 // indirect
 	github.com/telesma-app/hid v0.14.1 // indirect
-	github.com/telesma-app/iso7816 v0.2.0 // indirect
+	github.com/telesma-app/iso7816 v0.4.0 // indirect
 	github.com/telesma-app/pcsc v0.10.0 // indirect
-	github.com/telesma-app/token2 v0.13.1 // indirect
+	github.com/telesma-app/token2 v0.14.0 // indirect
 	github.com/telesma-app/windows-proxy v0.7.0 // indirect
-	github.com/telesma-app/yubico v0.6.1 // indirect
+	github.com/telesma-app/yubico v0.8.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
+	go.yaml.in/yaml/v3 v3.0.6 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/term v0.47.0 // indirect

@@ -1,4 +1,4 @@
-go 1.27.0
+go 1.27.3
 
 use (
 	.
@@ -9,6 +9,6 @@ use (
 	../mds
 	../pcsc
 	../token2
-	../yubico
 	../windows-proxy
+	../yubico
 )
