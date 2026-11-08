@@ -37,6 +37,10 @@ The macOS build tasks enable `private_mac_apis` to preserve the Liquid Glass bac
 
 ## Development
 
+`go.mod` and `go.sum` define dependency versions. Optional `go.work` and
+`go.work.sum` files stay local and are ignored by Git. CI and module verification
+run with `GOWORK=off`.
+
 Start the application in development mode:
 
 ```sh
@@ -88,13 +92,13 @@ wails3 task lint
 Run backend tests:
 
 ```sh
-go test ./... -count=1
+GOWORK=off go test ./... -count=1
 ```
 
 For authenticator lifecycle, locking, interaction, or cancellation changes, also run:
 
 ```sh
-go test -race ./... -count=1
+GOWORK=off go test -race ./... -count=1
 ```
 
 Run frontend type checks, tests, and a production build:

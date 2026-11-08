@@ -2,7 +2,7 @@
 
 ## Mission
 - `Telesma` is a Wails 3 desktop workbench for local FIDO2/CTAP authenticators.
-- The Go app is a product boundary over `github.com/go-ctap/kit`, replaced locally by `../kit`.
+- The Go app is a product boundary over `github.com/telesma-app/kit`, pinned in `go.mod`.
 - `ctapkit` is a runtime/toolkit for UI applications, not an abstract remote backend; generated Wails and `ctapkit` DTOs are UI-facing first-party model contracts.
 - Keep reusable authenticator, CTAP, device, transport, interaction, token, and selection semantics in `ctapkit`.
 - Keep product UX, Wails wiring, app state, screens, status/log presentation, and app-specific envelopes in this repo.
@@ -56,8 +56,8 @@
 - Prioritize the GoLand MCP tools for code navigation, symbol lookup, usage searches, inspections, refactoring, and other IDE-assisted operations when they are available and applicable.
 
 ## Verify
-- Backend: `go test ./... -count=1`.
-- Authenticator lifecycle, locking, interaction, or cancellation changes: also consider `go test -race ./... -count=1`.
+- Backend: `GOWORK=off go test ./... -count=1`.
+- Authenticator lifecycle, locking, interaction, or cancellation changes: also consider `GOWORK=off go test -race ./... -count=1`.
 - Frontend: `cd frontend; pnpm run build`.
 - Frontend type checking: `cd frontend; pnpm run check`.
 - UI smoke tests must use the real Wails window. Wails 3 dev runtime is not reliable through browser automation; ask the user to run `wails3 dev` or `task dev`.

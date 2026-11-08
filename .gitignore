@@ -22,8 +22,6 @@ go.work.sum
 .DS_Store
 
 # Project-specific files
-!/go.work
-!/go.work.sum
 .task
 bin
 frontend/dist/*
