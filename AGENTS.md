@@ -56,8 +56,8 @@
 - Prioritize the GoLand MCP tools for code navigation, symbol lookup, usage searches, inspections, refactoring, and other IDE-assisted operations when they are available and applicable.
 
 ## Verify
-- Backend: `GOWORK=off go test ./... -count=1`.
-- Authenticator lifecycle, locking, interaction, or cancellation changes: also consider `GOWORK=off go test -race ./... -count=1`.
+- Backend: `go test ./... -count=1`.
+- Authenticator lifecycle, locking, interaction, or cancellation changes: also consider `go test -race ./... -count=1`.
 - Frontend: `cd frontend; pnpm run build`.
 - Frontend type checking: `cd frontend; pnpm run check`.
 - UI smoke tests must use the real Wails window. Wails 3 dev runtime is not reliable through browser automation; ask the user to run `wails3 dev` or `task dev`.

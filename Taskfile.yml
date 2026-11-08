@@ -14,8 +14,6 @@ vars:
 tasks:
   lint:
     summary: Runs Go linters
-    env:
-      GOWORK: "off"
     cmds:
       - golangci-lint run ./...
 

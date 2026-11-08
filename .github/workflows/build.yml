@@ -15,7 +15,6 @@ concurrency:
 
 env:
   CI: "true"
-  GOWORK: "off"
   PNPM_VERSION: 11.18.0
 
 jobs:
