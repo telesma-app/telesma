@@ -1,13 +1,37 @@
+# Go build and test artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+_obj/
+
+# Local Go workspaces
+go.work
+go.work.sum
+
+# Local environment
+.env
+
+# IDE files
+.idea/
+
+# macOS metadata
+.DS_Store
+
+# Project-specific files
+!/go.work
+!/go.work.sum
 .task
 bin
-.DS_Store
 frontend/dist/*
 !frontend/dist/.gitkeep
 frontend/node_modules
 build/linux/appimage/build
 build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
 
-.idea/
 .codex/*
 !.codex/config.toml
 .pnpm-store/
