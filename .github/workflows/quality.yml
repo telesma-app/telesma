@@ -10,7 +10,7 @@ env:
   CI: "true"
   GOWORK: "off"
   PNPM_VERSION: 11.18.0
-  STATICCHECK_VERSION: "2026.2.1"
+  STATICCHECK_VERSION: "2026.2.2"
   ACTIONLINT_VERSION: v1.7.12
 
 jobs:
@@ -127,6 +127,7 @@ jobs:
             pkg-config
 
       - name: Set up Go
+        id: go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
@@ -144,7 +145,7 @@ jobs:
           path: |
             ~/go/bin/actionlint
             ~/go/bin/staticcheck
-          key: analysis-tools-${{ runner.os }}-${{ runner.arch }}-${{ env.STATICCHECK_VERSION }}-${{ env.ACTIONLINT_VERSION }}
+          key: analysis-tools-${{ runner.os }}-${{ runner.arch }}-go${{ steps.go.outputs.go-version }}-${{ env.STATICCHECK_VERSION }}-${{ env.ACTIONLINT_VERSION }}
 
       - name: Install Go analysis tools
         if: steps.analysis-tools-cache.outputs.cache-hit != 'true'
